@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Menu, ShoppingBag, Search, X, ChevronLeft, ChevronRight, ArrowRight, Minus, Plus, Wallet } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInstagram, faTiktok, faSnapchat, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
@@ -11,6 +11,7 @@ import ProductCard from './ProductCard';
 import { useGetCategories } from './requests/useGetCategories';
 import { useGetProducts } from './requests/useGetProductsWithSearch';
 import { useGetHomeData } from './requests/useGetHomeData';
+import { useGetProductsByCategory } from './requests/useGetProductsByCategory';
 import { mapApiProductsToComponent } from '../lib/productMapper';
 import { API_BASE_URL } from '../lib/apiConfig';
 
@@ -78,6 +79,8 @@ const ProductRowSection: React.FC<ProductRowSectionProps> = ({
 const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, favourites, onToggleFavourite }) => {
   const navigate = useNavigate();
   const { productId, categoryName } = useParams();
+  const [searchParams] = useSearchParams();
+  const categoryId = searchParams.get('id');
   const { products, contentSettings } = useData();
 
   // Fetch categories from API
@@ -160,12 +163,22 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
 
+  // Category page state
+  const [categoryPage, setCategoryPage] = useState(1);
+
   // Fetch search results from API
   const { data: searchProductsData, isLoading: searchLoading } = useGetProducts(
     'ar',
     searchPage,
     debouncedSearchQuery,
     false
+  );
+
+  // Fetch category products from API
+  const { data: categoryProductsData, isLoading: categoryLoading, error: categoryError } = useGetProductsByCategory(
+    'ar',
+    categoryPage,
+    categoryId || ''
   );
 
   // Transform search results
@@ -186,13 +199,11 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     return categoryName || null;
   }, [categoryName]);
 
+  // Transform category products from API
   const categoryProducts = useMemo(() => {
-    if (!activeCategory) return [];
-    // Find category ID from name for simple matching, or match by name directly if that's how we route
-    const cat = categories.find(c => c.name === activeCategory);
-    if (!cat) return [];
-    return products.filter(p => p.categoryId === cat.id && p.isActive);
-  }, [activeCategory, categories, products]);
+    if (!categoryProductsData?.products || !categoryId) return [];
+    return mapApiProductsToComponent(categoryProductsData.products);
+  }, [categoryProductsData, categoryId]);
 
   // Filter and Sort Categories for Side Menu
   const activeCategories = useMemo(() => {
@@ -270,8 +281,8 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  const handleCategoryClick = (categoryName: string) => {
-    navigate(`/category/${encodeURIComponent(categoryName)}`);
+  const handleCategoryClick = (categoryName: string, categoryId: string) => {
+    navigate(`/category/${encodeURIComponent(categoryName)}?id=${categoryId}`);
     setIsMenuOpen(false);
   };
 
@@ -373,7 +384,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
                 <button
                   key={category.id}
                   className="w-full px-6 py-5 flex items-center justify-between hover:bg-app-bg active:bg-app-card/50 transition-colors border-b border-app-card/10 group"
-                  onClick={() => handleCategoryClick(category.name)}
+                  onClick={() => handleCategoryClick(category.name, category.id)}
                 >
                   <span className="text-sm font-medium text-app-text font-alexandria">{category.name}</span>
                   <ChevronLeft size={18} className="text-app-gold opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -633,19 +644,56 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
               <h2 className="text-lg font-bold text-app-text font-alexandria truncate">{activeCategory}</h2>
             </div>
             <div className="px-6 grid grid-cols-2 gap-4">
-              {categoryProducts.length > 0 ? categoryProducts.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  isFavourite={favourites.includes(product.id)}
-                  onToggleFavourite={onToggleFavourite}
-                  onAddToCart={onAddToCart}
-                  onClick={handleProductClick}
-                />
-              )) : (
+              {categoryLoading ? (
+                <div className="col-span-2 text-center text-app-textSec py-10">
+                  جاري التحميل...
+                </div>
+              ) : categoryError ? (
+                <div className="col-span-2 text-center text-red-500 py-10">
+                  حدث خطأ أثناء تحميل المنتجات
+                </div>
+              ) : categoryProducts.length > 0 ? (
+                categoryProducts.map(product => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    isFavourite={favourites.includes(product.id)}
+                    onToggleFavourite={onToggleFavourite}
+                    onAddToCart={onAddToCart}
+                    onClick={handleProductClick}
+                  />
+                ))
+              ) : (
                 <p className="col-span-2 text-center text-app-textSec py-10">لا توجد منتجات في هذا القسم حالياً.</p>
               )}
             </div>
+
+            {/* Pagination Controls */}
+            {categoryProductsData && categoryProductsData.pagination.total_pages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-8 mb-4 px-6">
+                <button
+                  onClick={() => setCategoryPage(prev => Math.max(1, prev - 1))}
+                  disabled={categoryPage === 1}
+                  className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={20} />
+                </button>
+
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
+                  <span className="text-sm font-medium text-app-text">
+                    صفحة {categoryPage} من {categoryProductsData.pagination.total_pages}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setCategoryPage(prev => Math.min(categoryProductsData.pagination.total_pages, prev + 1))}
+                  disabled={categoryPage === categoryProductsData.pagination.total_pages}
+                  className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>

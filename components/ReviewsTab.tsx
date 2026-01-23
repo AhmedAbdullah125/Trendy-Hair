@@ -1,7 +1,7 @@
-
 import React, { useState, useRef, useMemo } from 'react';
-import { Play, X } from 'lucide-react';
-import { useData } from '../context/DataContext';
+import { ChevronLeft, ChevronRight, Play, X } from 'lucide-react';
+import { useGetReviews } from './requests/useGetReviews';
+import { API_BASE_URL } from '../lib/apiConfig';
 import { Review } from '../types';
 
 interface ReviewCardProps {
@@ -13,15 +13,15 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, onPlay }) => {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div 
+    <div
       onClick={() => onPlay(review)}
       className="relative aspect-[9/16] w-full rounded-lg overflow-hidden bg-app-card shadow-sm border border-app-card/30 cursor-pointer group active:scale-[0.98] transition-all"
     >
       {/* Thumbnail Image with Error Handling */}
       {review.thumbnailUrl && !imgError ? (
-        <img 
-          src={review.thumbnailUrl} 
-          alt="" 
+        <img
+          src={review.thumbnailUrl}
+          alt=""
           onError={() => setImgError(true)}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
@@ -53,19 +53,28 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, onPlay }) => {
 };
 
 const ReviewsTab: React.FC = () => {
-  const { reviews } = useData();
+  // Fetch reviews from API
+  const [page, setPage] = useState(1);
+  const { data: reviewsData, isLoading, error } = useGetReviews('ar', page);
+
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [activeReview, setActiveReview] = useState<Review | null>(null);
-  
+
   // Reference to the video element to control playback programmatically
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Filter and sort reviews
+  // Transform API data to component format
   const displayReviews = useMemo(() => {
-    return reviews
-      .filter(r => r.isActive)
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-  }, [reviews]);
+    if (!reviewsData?.products) return [];
+    return reviewsData.products.map((review: any) => ({
+      id: review.id,
+      videoUrl: `${API_BASE_URL}/${review.video}`,
+      customerName: review.title,
+      thumbnailUrl: undefined, // API doesn't provide thumbnails
+      isActive: true,
+      sortOrder: review.id
+    }));
+  }, [reviewsData]);
 
   const handlePlayReview = (review: Review) => {
     setActiveReview(review);
@@ -89,12 +98,20 @@ const ReviewsTab: React.FC = () => {
 
       {/* Video Grid */}
       <div className="grid grid-cols-2 gap-4">
-        {displayReviews.length > 0 ? (
+        {isLoading ? (
+          <div className="col-span-2 text-center text-app-textSec py-10">
+            جاري التحميل...
+          </div>
+        ) : error ? (
+          <div className="col-span-2 text-center text-red-500 py-10">
+            حدث خطأ أثناء تحميل المراجعات
+          </div>
+        ) : displayReviews.length > 0 ? (
           displayReviews.map((review) => (
-            <ReviewCard 
-              key={review.id} 
-              review={review} 
-              onPlay={handlePlayReview} 
+            <ReviewCard
+              key={review.id}
+              review={review}
+              onPlay={handlePlayReview}
             />
           ))
         ) : (
@@ -104,17 +121,45 @@ const ReviewsTab: React.FC = () => {
         )}
       </div>
 
+      {/* Pagination Controls */}
+      {
+        reviewsData?.pagination.total_pages > 1 &&
+        <div className="flex items-center justify-center gap-3 mt-8 mb-4">
+          <button
+            onClick={() => setPage(prev => Math.max(1, prev - 1))}
+            disabled={page === 1}
+            className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronRight size={20} />
+          </button>
+
+          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
+            <span className="text-sm font-medium text-app-text">
+              صفحة {page} من {reviewsData?.pagination.total_pages}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setPage(prev => Math.min(reviewsData?.pagination.total_pages, prev + 1))}
+            disabled={page === reviewsData?.pagination.total_pages}
+            className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={20} />
+          </button>
+        </div>
+      }
+
       {/* Bottom Padding for TabBar visibility */}
       <div className="h-4" />
 
       {/* Full Screen Video Overlay */}
       {isVideoOpen && activeReview && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-scaleIn"
           onClick={handleCloseVideo}
         >
           {/* Close Button */}
-          <button 
+          <button
             onClick={handleCloseVideo}
             className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors z-50 backdrop-blur-md"
           >
@@ -122,9 +167,9 @@ const ReviewsTab: React.FC = () => {
           </button>
 
           {/* Video Container - Responsive wrapper for MP4 */}
-          <div 
+          <div
             className="w-full max-w-sm md:max-w-2xl bg-black rounded-2xl overflow-hidden shadow-2xl relative border border-white/10"
-            onClick={(e) => e.stopPropagation()} 
+            onClick={(e) => e.stopPropagation()}
           >
             <video
               ref={videoRef}
