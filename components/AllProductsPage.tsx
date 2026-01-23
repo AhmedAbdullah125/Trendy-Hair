@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product } from '../types';
-import { useData } from '../context/DataContext';
+import { useGetProducts } from './requests/useGetProductsWithSearch';
+import { mapApiProductsToComponent } from '../lib/productMapper';
 import ProductCard from './ProductCard';
 
 interface AllProductsPageProps {
@@ -17,20 +18,27 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
   onToggleFavourite
 }) => {
   const navigate = useNavigate();
-  const { products } = useData();
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Show only active products
-  const activeProducts = products.filter(p => p.isActive);
+  // Fetch products from API
+  const { data: productsData, isLoading, error } = useGetProducts('ar', currentPage, '', false);
+
+  // Transform API products to component format
+  const products = useMemo(() => {
+    if (!productsData?.products) return [];
+    return mapApiProductsToComponent(productsData.products);
+  }, [productsData]);
 
   const handleProductClick = (product: Product) => {
     navigate(`/product/${product.id}`);
   };
+  console.log(productsData);
 
   return (
     <div className="flex flex-col h-full bg-app-bg relative font-alexandria overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors flex-shrink-0"
         >
@@ -43,18 +51,61 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto w-full pb-28 px-6 pt-4">
-        <div className="grid grid-cols-2 gap-4">
-          {activeProducts.map(product => (
-            <ProductCard 
-              key={product.id}
-              product={product}
-              isFavourite={favourites.includes(product.id)}
-              onToggleFavourite={onToggleFavourite}
-              onAddToCart={onAddToCart}
-              onClick={handleProductClick}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-app-textSec">جاري التحميل...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-red-500">حدث خطأ أثناء تحميل المنتجات</div>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-app-textSec">لا توجد منتجات متاحة حالياً</div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              {products.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isFavourite={favourites.includes(product.id)}
+                  onToggleFavourite={onToggleFavourite}
+                  onAddToCart={onAddToCart}
+                  onClick={handleProductClick}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {productsData && productsData.pagination.total_pages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-8 mb-4">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={20} />
+                </button>
+
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
+                  <span className="text-sm font-medium text-app-text">
+                    صفحة {currentPage} من {productsData.pagination.total_pages}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(productsData.pagination.total_pages, prev + 1))}
+                  disabled={currentPage === productsData.pagination.total_pages}
+                  className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

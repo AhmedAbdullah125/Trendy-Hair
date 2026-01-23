@@ -1,14 +1,17 @@
 
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Menu, ShoppingBag, Search, X, ChevronLeft, ArrowRight, Minus, Plus, Wallet } from 'lucide-react';
+import { Menu, ShoppingBag, Search, X, ChevronLeft, ChevronRight, ArrowRight, Minus, Plus, Wallet } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInstagram, faTiktok, faSnapchat, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { Product } from '../types';
 import { useData } from '../context/DataContext';
 import ProductCard from './ProductCard';
 import { useGetCategories } from './requests/useGetCategories';
+import { useGetProducts } from './requests/useGetProductsWithSearch';
+import { useGetHomeData } from './requests/useGetHomeData';
+import { mapApiProductsToComponent } from '../lib/productMapper';
 import { API_BASE_URL } from '../lib/apiConfig';
 
 interface HomeTabProps {
@@ -75,10 +78,13 @@ const ProductRowSection: React.FC<ProductRowSectionProps> = ({
 const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, favourites, onToggleFavourite }) => {
   const navigate = useNavigate();
   const { productId, categoryName } = useParams();
-  const { products, brands, packages, contentSettings } = useData();
+  const { products, contentSettings } = useData();
 
   // Fetch categories from API
   const { data: apiCategories, isLoading: categoriesLoading, error: categoriesError } = useGetCategories('ar');
+
+  // Fetch home data (banners, brands, recently arrived products, packages) from API
+  const { data: homeData, isLoading: homeDataLoading } = useGetHomeData('ar');
 
   // Transform API categories to match the expected format
   const categories = useMemo(() => {
@@ -92,11 +98,84 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     }));
   }, [apiCategories]);
 
+  // Transform banners from API
+  const banners = useMemo(() => {
+    if (!homeData?.banners) return [];
+    return homeData.banners
+      .filter((banner: any) => banner.is_active === 1)
+      .sort((a: any, b: any) => a.position - b.position)
+      .map((banner: any) => ({
+        id: banner.id,
+        image: `${API_BASE_URL}/${banner.image}`,
+        title: banner.title,
+        url: banner.url
+      }));
+  }, [homeData]);
+
+  // Transform brands from API
+  const brands = useMemo(() => {
+    if (!homeData?.brands) return [];
+    return homeData.brands
+      .filter((brand: any) => brand.is_active === 1)
+      .sort((a: any, b: any) => a.position - b.position)
+      .map((brand: any) => ({
+        id: brand.id,
+        name: brand.name,
+        image: `${API_BASE_URL}/${brand.image}`,
+        isActive: brand.is_active === 1,
+        sortOrder: brand.position
+      }));
+  }, [homeData]);
+
+  // Transform recently arrived products from API
+  const recentProducts = useMemo(() => {
+    if (!homeData?.products_recently) return [];
+    return mapApiProductsToComponent(homeData.products_recently);
+  }, [homeData]);
+
+  // Transform packages from API
+  const packages = useMemo(() => {
+    if (!homeData?.packages) return [];
+    return homeData.packages
+      .filter((pkg: any) => pkg.is_active === 1)
+      .map((pkg: any) => ({
+        id: pkg.id,
+        name: pkg.name,
+        isActive: pkg.is_active === 1,
+        productIds: pkg.products.map((p: any) => p.id),
+        displayOrder: pkg.id,
+        products: mapApiProductsToComponent(pkg.products)
+      }));
+  }, [homeData]);
+
   const [currentBanner, setCurrentBanner] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+
+  // Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchPage, setSearchPage] = useState(1);
+
+  // Fetch search results from API
+  const { data: searchProductsData, isLoading: searchLoading } = useGetProducts(
+    'ar',
+    searchPage,
+    debouncedSearchQuery,
+    false
+  );
+
+  // Transform search results
+  const searchResults = useMemo(() => {
+    if (!searchProductsData?.products || !debouncedSearchQuery) return [];
+    return mapApiProductsToComponent(searchProductsData.products);
+  }, [searchProductsData, debouncedSearchQuery]);
+
+  // Ref for search container (click outside to close)
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const selectedProduct = useMemo(() => {
     if (!productId) return null;
@@ -115,10 +194,6 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     return products.filter(p => p.categoryId === cat.id && p.isActive);
   }, [activeCategory, categories, products]);
 
-  const activeBrands = useMemo(() => {
-    return brands.filter(b => b.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [brands]);
-
   // Filter and Sort Categories for Side Menu
   const activeCategories = useMemo(() => {
     return categories
@@ -126,11 +201,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }, [categories]);
 
-  const banners = [
-    { id: 1, image: 'https://raiyansoft.com/wp-content/uploads/2025/12/1.png' },
-    { id: 2, image: 'https://raiyansoft.com/wp-content/uploads/2025/12/2.png' },
-    { id: 3, image: 'https://raiyansoft.com/wp-content/uploads/2025/12/3.png' },
-  ];
+
 
   useEffect(() => {
     if (activeCategory || selectedProduct) return;
@@ -139,6 +210,42 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     }, 2000);
     return () => clearInterval(timer);
   }, [banners.length, activeCategory, selectedProduct]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Show search results when there's a debounced query
+  useEffect(() => {
+    if (debouncedSearchQuery.length >= 2) {
+      setShowSearchResults(true);
+      setSearchPage(1); // Reset to page 1 when search query changes
+    } else {
+      setShowSearchResults(false);
+    }
+  }, [debouncedSearchQuery]);
+
+  // Click outside to close search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    if (showSearchResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSearchResults]);
 
   const minSwipeDistance = 50;
   const onTouchStart = (e: React.TouchEvent) => {
@@ -191,6 +298,19 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     }
   };
 
+  const handleSearchResultClick = (product: Product) => {
+    handleProductClick(product);
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    setShowSearchResults(false);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    setShowSearchResults(false);
+  };
+
   const renderProductRows = () => {
     const rowProps = {
       favourites,
@@ -199,30 +319,25 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
       onProductClick: handleProductClick
     };
 
-    // Filter New Arrivals
-    const newArrivals = products.filter(p => p.isNew && p.isActive).slice(0, 4);
-
     return (
       <>
         <ProductRowSection
           title="وصلنا حديثاً"
-          products={newArrivals}
+          products={recentProducts}
           onViewAll={() => navigate('/products')}
           showViewAll={true}
           {...rowProps}
         />
 
         {/* Dynamic Packages */}
-        {packages.filter(p => p.isActive).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)).map(pkg => {
-          // Resolve package items
-          const pkgProducts = products.filter(p => pkg.productIds.includes(p.id) && p.isActive);
-          if (pkgProducts.length === 0) return null;
+        {packages.map(pkg => {
+          if (!pkg.products || pkg.products.length === 0) return null;
 
           return (
             <ProductRowSection
               key={pkg.id}
               title={pkg.name}
-              products={pkgProducts}
+              products={pkg.products}
               showViewAll={false}
               titleSize="text-base"
               {...rowProps}
@@ -384,9 +499,91 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         ) : !activeCategory ? (
           <div className="pt-4">
             <div className="px-6 mb-6">
-              <div className="relative w-full">
-                <input type="text" placeholder="بحث عن منتج" className="w-full bg-white border border-app-card rounded-full py-3.5 pr-6 pl-12 text-right focus:outline-none focus:border-app-gold shadow-sm font-alexandria text-sm" />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec" size={20} />
+              <div className="relative w-full" ref={searchRef}>
+                <input
+                  type="text"
+                  placeholder="بحث عن منتج"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-app-card rounded-full py-3.5 pr-6 pl-12 text-right focus:outline-none focus:border-app-gold shadow-sm font-alexandria text-sm"
+                />
+                {searchQuery ? (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec hover:text-app-text transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                ) : (
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec" size={20} />
+                )}
+
+                {/* Search Results Dropdown */}
+                {showSearchResults && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-app-card/30 max-h-96 overflow-y-auto z-50">
+                    {searchLoading ? (
+                      <div className="p-6 text-center text-app-textSec">
+                        جاري البحث...
+                      </div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="p-6 text-center text-app-textSec">
+                        لا توجد نتائج
+                      </div>
+                    ) : (
+                      <div className="py-2">
+                        {searchResults.map((product) => (
+                          <button
+                            key={product.id}
+                            onClick={() => handleSearchResultClick(product)}
+                            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-app-bg transition-colors text-right"
+                          >
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-app-text truncate">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-app-gold font-bold mt-0.5">
+                                {product.price}
+                              </p>
+                            </div>
+                            <ChevronLeft size={16} className="text-app-textSec flex-shrink-0" />
+                          </button>
+                        ))}
+
+                        {/* Pagination Controls */}
+                        {searchProductsData && searchProductsData.pagination.total_pages > 1 && (
+                          <div className="flex items-center justify-center gap-3 py-3 px-4 border-t border-app-card/30">
+                            <button
+                              onClick={() => setSearchPage(prev => Math.max(1, prev - 1))}
+                              disabled={searchPage === 1}
+                              className="p-1.5 bg-app-bg rounded-full text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-app-textSec">
+                                صفحة {searchPage} من {searchProductsData.pagination.total_pages}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => setSearchPage(prev => Math.min(searchProductsData.pagination.total_pages, prev + 1))}
+                              disabled={searchPage === searchProductsData.pagination.total_pages}
+                              className="p-1.5 bg-app-bg rounded-full text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronLeft size={18} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="px-6">
@@ -413,7 +610,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
             <div className="px-6 mt-10">
               <h2 className="text-lg font-bold text-app-text mb-4">أفضل العلامات التجارية</h2>
               <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-6 px-6">
-                {activeBrands.map((brand) => (
+                {brands.map((brand) => (
                   <div key={brand.id} onClick={() => navigate(`/brand/${brand.id}`)} className="relative shrink-0 w-32 h-32 rounded-2xl overflow-hidden bg-white shadow-sm border border-app-card/30 group cursor-pointer">
                     <img src={brand.image} alt={brand.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-end p-3">
