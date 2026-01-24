@@ -21,17 +21,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const [favLoading, setFavLoading] = useState(false);
 
-  // ✅ Add to cart mutation
   const addMut = useAddToCart();
 
-  // ✅ Local override (optimistic) — null يعني اعتمد على props / product.isFavorite
   const [localFavOverride, setLocalFavOverride] = useState<boolean | null>(null);
 
-  // ✅ مصدر الحقيقة للعرض داخل الكارد
   const isFav = useMemo(() => {
-    const base = (product as any).isFavorite ?? isFavourite;
+    const base = isFavourite;
     return localFavOverride === null ? base : localFavOverride;
-  }, [(product as any).isFavorite, isFavourite, localFavOverride]);
+  }, [isFavourite, localFavOverride, (product as any).isFavorite]);
 
   useEffect(() => {
     setLocalFavOverride(null);

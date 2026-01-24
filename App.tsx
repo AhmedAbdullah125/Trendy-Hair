@@ -10,7 +10,7 @@ import ReviewsTab from './components/ReviewsTab';
 import HomeTab from './components/home/HomeTab';
 import AllProductsPage from './components/AllProductsPage';
 import BrandPage from './components/BrandPage';
-import CartFlow from './components/CartFlow';
+// import CartFlow from './components/CartFlow';
 import AuthScreen from './components/AuthScreen';
 import { TabId, Product } from './types';
 import { Check } from 'lucide-react';
@@ -33,6 +33,7 @@ import AdminContent from './components/admin/AdminContent';
 import AdminWidgets from './components/admin/AdminWidgets';
 import AdminCategories from './components/admin/AdminCategories';
 import AdminReviews from './components/admin/AdminReviews';
+import CartFlow from './components/cart/CartFlow';
 
 const AdminPlaceholder = ({ title }: { title: string }) => (
   <div className="p-10 text-center text-app-textSec font-bold text-xl">صفحة {title} قيد التطوير</div>
