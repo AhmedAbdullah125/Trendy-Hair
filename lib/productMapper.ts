@@ -55,6 +55,7 @@ export const mapApiProductToComponent = (apiProduct: ApiProduct): Product => {
         stockStatus: apiProduct.stock_status,
         inStock: apiProduct.in_stock,
         quantity: apiProduct.quantity,
+        isFavorite: apiProduct.is_favorite,
     };
 };
 

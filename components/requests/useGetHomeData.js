@@ -20,6 +20,6 @@ export const useGetHomeData = (lang = 'ar') =>
   useQuery({
     queryKey: ["home", lang],
     queryFn: () => fetchHomeData(lang),
-    staleTime: 1000 * 60 * 5,  // 5 minutes
+    staleTime: 1000 * 5,  // 5 minutes
     gcTime: 1000 * 60 * 60,  // 1 hour
   });

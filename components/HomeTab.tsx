@@ -14,6 +14,7 @@ import { useGetHomeData } from './requests/useGetHomeData';
 import { useGetProductsByCategory } from './requests/useGetProductsByCategory';
 import { mapApiProductsToComponent } from '../lib/productMapper';
 import { API_BASE_URL } from '../lib/apiConfig';
+import { useGetProduct } from './requests/useGetProduct';
 
 interface HomeTabProps {
   cartCount: number;
@@ -189,11 +190,27 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
 
   // Ref for search container (click outside to close)
   const searchRef = useRef<HTMLDivElement>(null);
+  const { data: apiProduct, isLoading: productLoading, error: productError } =
+    useGetProduct('ar', productId || '');
 
+  // ✅ map backend response -> نفس شكل Product اللي UI متوقعه
   const selectedProduct = useMemo(() => {
-    if (!productId) return null;
-    return products.find(p => p.id === parseInt(productId)) || null;
-  }, [productId, products]);
+    if (!apiProduct) return null;
+
+    return {
+      id: apiProduct.id,
+      name: apiProduct.name,
+      description: apiProduct.description,
+      image: apiProduct.main_image,
+      price: apiProduct.current_price,              // السعر الحالي
+      oldPrice: apiProduct.has_discount ? apiProduct.price : null, // القديم لو فيه خصم
+      inStock: apiProduct.in_stock,
+      quantity: apiProduct.quantity,
+      brand: apiProduct.brand,
+      category: apiProduct.category,
+      isFavorite: apiProduct.is_favorite,
+    };
+  }, [apiProduct]);
 
   const activeCategory = useMemo(() => {
     return categoryName || null;
