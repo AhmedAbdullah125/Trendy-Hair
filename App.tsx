@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -18,6 +17,10 @@ import { Check } from 'lucide-react';
 import { STORAGE_KEYS, POINTS_EARNED_PER_KD } from './constants';
 import Cookies from 'js-cookie';
 
+// ✅ API hooks
+import { useGetCart } from './components/requests/useGetCart';
+import { useAddToCart } from './components/requests/useAddToCart';
+
 // Admin Imports
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -31,7 +34,6 @@ import AdminWidgets from './components/admin/AdminWidgets';
 import AdminCategories from './components/admin/AdminCategories';
 import AdminReviews from './components/admin/AdminReviews';
 
-// Placeholder imports
 const AdminPlaceholder = ({ title }: { title: string }) => (
   <div className="p-10 text-center text-app-textSec font-bold text-xl">صفحة {title} قيد التطوير</div>
 );
@@ -52,7 +54,7 @@ export interface Order {
 const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [favourites, setFavourites] = useState<number[]>([]);
@@ -64,6 +66,15 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
+
+  // ✅ language (adjust if you have global lang)
+  const lang = "ar";
+
+  // ✅ Cart from API
+  const { data: cartData, isLoading: cartLoading } = useGetCart(lang);
+
+  // ✅ Add to cart mutation
+  const addToCartMut = useAddToCart();
 
   // Derive current tab from URL
   const currentTab = useMemo((): TabId => {
@@ -100,17 +111,51 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   // Handle toast auto-hide
   useEffect(() => {
     if (showToast) {
-      const timer = setTimeout(() => {
-        setShowToast(false);
-      }, 2000);
+      const timer = setTimeout(() => setShowToast(false), 2000);
       return () => clearTimeout(timer);
     }
   }, [showToast]);
 
-  const cartCount = useMemo(() =>
-    cartItems.reduce((sum, item) => sum + item.quantity, 0),
-    [cartItems]
-  );
+  // ✅ cartCount from API
+  const cartCount = useMemo(() => {
+    return cartData?.items?.item_counts?.total
+      ?? cartData?.items?.total_items
+      ?? 0;
+  }, [cartData]);
+
+  // ✅ Convert API cart items to CartFlow shape (CartItem[])
+  const cartItems: CartItem[] = useMemo(() => {
+    const apiItems = cartData?.items?.items || [];
+
+    return apiItems.map((it) => {
+      const p = it.products;
+
+      const current =
+        p.current_price ??
+        p.discounted_price ??
+        p.price;
+
+      const oldPrice =
+        p.has_discount && p.price && current && p.price > current
+          ? `${Number(p.price).toFixed(3)} د.ك`
+          : undefined;
+
+      const product: Product = {
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        image: p.main_image,
+        price: `${Number(current).toFixed(3)} د.ك`,
+        oldPrice,
+        // لو عندك حقول إضافية في Product type سيبها
+      } as any;
+
+      return {
+        product,
+        quantity: it.quantity,
+      };
+    });
+  }, [cartData]);
 
   // --- WALLET HANDLERS ---
   const creditGameBalance = (amount: number) => {
@@ -138,40 +183,32 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     }
   };
 
-  // --- CART HANDLERS ---
+  // --- CART HANDLERS (API) ---
   const handleAddToCart = (product: Product, quantity: number) => {
-    setCartItems(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) {
-        return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+    // ✅ POST /cart/add-items
+    addToCartMut.mutate(
+      { product_id: product.id, quantity, lang },
+      {
+        onSuccess: () => {
+          // ✅ Trigger notification
+          setShowToast(false);
+          setTimeout(() => setShowToast(true), 10);
+        }
       }
-      return [...prev, { product, quantity }];
-    });
-    // Trigger notification
-    setShowToast(false); // Reset if already showing
-    setTimeout(() => setShowToast(true), 10);
+    );
   };
 
-  const handleUpdateQuantity = (productId: number, delta: number) => {
-    setCartItems(prev => prev.map(item => {
-      if (item.product.id === productId) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    }));
+  // ⚠️ These need endpoints. Keep UI working; do nothing for now.
+  const handleUpdateQuantity = (_productId: number, _delta: number) => {
+    // TODO: call API (update quantity) then invalidateQueries(["cart"])
   };
 
-  const handleRemoveItem = (productId: number) => {
-    setCartItems(prev => prev.filter(item => item.product.id !== productId));
+  const handleRemoveItem = (_productId: number) => {
+    // TODO: call API (remove item) then invalidateQueries(["cart"])
   };
 
   const handleClearCart = () => {
-    setCartItems([]);
+    // TODO: call API (clear cart) then invalidateQueries(["cart"])
   };
 
   const handleAddOrder = (order: Order, paidAmountKD: number) => {
@@ -206,18 +243,24 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   if (isCartOpen && !isAdmin) {
     return (
       <div className="w-full bg-[#F7F4EE] min-h-screen relative shadow-2xl flex flex-col overflow-hidden">
-        <CartFlow
-          cartItems={cartItems}
-          onClose={() => setIsCartOpen(false)}
-          onUpdateQuantity={handleUpdateQuantity}
-          onRemoveItem={handleRemoveItem}
-          onClearCart={handleClearCart}
-          onAddOrder={handleAddOrder}
-          onViewOrderDetails={handleViewOrderDetails}
-          gameBalance={gameBalance}
-          loyaltyPoints={loyaltyPoints}
-          onDeductWallets={deductWallets}
-        />
+        {cartLoading ? (
+          <div className="h-full flex items-center justify-center bg-white">
+            <div className="w-8 h-8 border-2 border-app-gold/30 border-t-app-gold rounded-full animate-spin" />
+          </div>
+        ) : (
+          <CartFlow
+            cartItems={cartItems}
+            onClose={() => setIsCartOpen(false)}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onClearCart={handleClearCart}
+            onAddOrder={handleAddOrder}
+            onViewOrderDetails={handleViewOrderDetails}
+            gameBalance={gameBalance}
+            loyaltyPoints={loyaltyPoints}
+            onDeductWallets={deductWallets}
+          />
+        )}
       </div>
     );
   }
@@ -228,36 +271,81 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
         <main className="flex-1 w-full relative h-full">
           <Routes>
             {/* Customer Routes */}
-            <Route path="/" element={<HomeTab cartCount={cartCount} onAddToCart={handleAddToCart} onOpenCart={() => setIsCartOpen(true)} favourites={favourites} onToggleFavourite={handleToggleFavourite} />} />
-            <Route path="/category/:categoryName" element={<HomeTab cartCount={cartCount} onAddToCart={handleAddToCart} onOpenCart={() => setIsCartOpen(true)} favourites={favourites} onToggleFavourite={handleToggleFavourite} />} />
-            <Route path="/product/:productId" element={<HomeTab cartCount={cartCount} onAddToCart={handleAddToCart} onOpenCart={() => setIsCartOpen(true)} favourites={favourites} onToggleFavourite={handleToggleFavourite} />} />
-            <Route path="/products" element={<AllProductsPage onAddToCart={handleAddToCart} favourites={favourites} onToggleFavourite={handleToggleFavourite} />} />
-            <Route path="/brand/:brandId" element={<BrandPage onAddToCart={handleAddToCart} favourites={favourites} onToggleFavourite={handleToggleFavourite} />} />
+            <Route
+              path="/"
+              element={
+                <HomeTab
+                  cartCount={cartCount}
+                  onAddToCart={handleAddToCart}
+                  onOpenCart={() => setIsCartOpen(true)}
+                  favourites={favourites}
+                  onToggleFavourite={handleToggleFavourite}
+                />
+              }
+            />
+            <Route
+              path="/category/:categoryName"
+              element={
+                <HomeTab
+                  cartCount={cartCount}
+                  onAddToCart={handleAddToCart}
+                  onOpenCart={() => setIsCartOpen(true)}
+                  favourites={favourites}
+                  onToggleFavourite={handleToggleFavourite}
+                />
+              }
+            />
+            <Route
+              path="/product/:productId"
+              element={
+                <HomeTab
+                  cartCount={cartCount}
+                  onAddToCart={handleAddToCart}
+                  onOpenCart={() => setIsCartOpen(true)}
+                  favourites={favourites}
+                  onToggleFavourite={handleToggleFavourite}
+                />
+              }
+            />
+            <Route
+              path="/products"
+              element={<AllProductsPage onAddToCart={handleAddToCart} favourites={favourites} onToggleFavourite={handleToggleFavourite} />}
+            />
+            <Route
+              path="/brand/:brandId"
+              element={<BrandPage onAddToCart={handleAddToCart} favourites={favourites} onToggleFavourite={handleToggleFavourite} />}
+            />
 
             <Route path="/reviews" element={<ReviewsTab />} />
             <Route path="/play" element={<PlayTab onCreditWallet={creditGameBalance} gameBalance={gameBalance} />} />
-            <Route path="/favorites" element={
-              <FavoritesTab
-                favourites={favourites}
-                onToggleFavourite={handleToggleFavourite}
-                onAddToCart={handleAddToCart}
-              />
-            } />
+            <Route
+              path="/favorites"
+              element={
+                <FavoritesTab
+                  favourites={favourites}
+                  onToggleFavourite={handleToggleFavourite}
+                  onAddToCart={handleAddToCart}
+                />
+              }
+            />
 
-            <Route path="/account/*" element={
-              <AccountTab
-                orders={orders}
-                onNavigateToHome={() => navigate('/')}
-                initialOrderId={pendingOrderDetailsId}
-                onClearInitialOrder={() => setPendingOrderDetailsId(null)}
-                favourites={favourites}
-                onToggleFavourite={handleToggleFavourite}
-                onAddToCart={handleAddToCart}
-                gameBalance={gameBalance}
-                loyaltyPoints={loyaltyPoints}
-                onLogout={onLogout}
-              />
-            } />
+            <Route
+              path="/account/*"
+              element={
+                <AccountTab
+                  orders={orders}
+                  onNavigateToHome={() => navigate('/')}
+                  initialOrderId={pendingOrderDetailsId}
+                  onClearInitialOrder={() => setPendingOrderDetailsId(null)}
+                  favourites={favourites}
+                  onToggleFavourite={handleToggleFavourite}
+                  onAddToCart={handleAddToCart}
+                  gameBalance={gameBalance}
+                  loyaltyPoints={loyaltyPoints}
+                  onLogout={onLogout}
+                />
+              }
+            />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
@@ -299,6 +387,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
           </>
         )}
       </div>
+
       <style>{`
         @keyframes slideUp {
           from { transform: translate(-50%, 100%); opacity: 0; }
@@ -314,12 +403,10 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   useEffect(() => {
-    // Check for existing session
     const session = Cookies.get('token');
-    if (session) {
-      setIsAuthenticated(true);
-    }
+    if (session) setIsAuthenticated(true);
   }, []);
 
   const handleLoginSuccess = () => {

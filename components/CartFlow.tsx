@@ -28,13 +28,13 @@ const KUWAIT_REGIONS: Record<string, string[]> = {
   "مبارك الكبير": ["العدان", "القصور", "القرين", "مبارك الكبير", "المسيلة", "المسايل", "أبو فطيرة", "أبو الحصانية", "صباح السالم", "الفنيطيس"]
 };
 
-const CartFlow: React.FC<CartFlowProps> = ({ 
-  cartItems, 
-  onClose, 
-  onUpdateQuantity, 
-  onRemoveItem, 
-  onClearCart, 
-  onAddOrder, 
+const CartFlow: React.FC<CartFlowProps> = ({
+  cartItems,
+  onClose,
+  onUpdateQuantity,
+  onRemoveItem,
+  onClearCart,
+  onAddOrder,
   onViewOrderDetails,
   gameBalance,
   loyaltyPoints,
@@ -43,19 +43,19 @@ const CartFlow: React.FC<CartFlowProps> = ({
   const [step, setStep] = useState<CheckoutStep>('cart');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
-  
+
   // Wallet Usage State
   const [useGameBalance, setUseGameBalance] = useState(false);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [gameAmountToUse, setGameAmountToUse] = useState<number>(0);
-  
+
   const [addressForm, setAddressForm] = useState({
     name: 'nader',
     governorate: '',
     area: '',
     details: ''
   });
-  
+
   const [lastOrderId, setLastOrderId] = useState('');
 
   const subtotal = useMemo(() => {
@@ -76,7 +76,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
   const maxLoyaltyRedemptionValue = useMemo(() => {
     const pointsValue = loyaltyPoints * LOYALTY_POINT_VALUE_KD;
     // Can cover whole order including delivery? Usually rewards cover subtotal, but let's assume total for loyalty simplicity
-    return Math.min(pointsValue, subtotal + deliveryFee); 
+    return Math.min(pointsValue, subtotal + deliveryFee);
   }, [loyaltyPoints, subtotal, deliveryFee]);
 
   // Calculate Finals
@@ -122,7 +122,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
       return;
     }
     setIsProcessing(true);
-    
+
     // Simulate payment
     setTimeout(() => {
       const orderId = `TH-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -133,13 +133,13 @@ const CartFlow: React.FC<CartFlowProps> = ({
         total: `${finalTotal.toFixed(3)} د.ك`,
         items: [...cartItems]
       };
-      
+
       // Calculate points to deduct
       const pointsToDeduct = useLoyaltyPoints ? Math.ceil(finalLoyaltyDeduction / LOYALTY_POINT_VALUE_KD) : 0;
-      
+
       // Execute deductions
       onDeductWallets(finalGameDeduction, pointsToDeduct);
-      
+
       setLastOrderId(orderId);
       // Pass the paid amount to calculate NEW points earned
       onAddOrder(newOrder, finalTotal);
@@ -205,7 +205,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
             <span className="text-app-textSec font-bold">إجمالي السلة:</span>
             <span className="text-xl font-bold text-app-gold">{subtotal.toFixed(3)} د.ك</span>
           </div>
-          <button 
+          <button
             onClick={() => setStep('details')}
             className="w-full bg-app-gold text-white font-bold py-4 rounded-2xl shadow-lg shadow-app-gold/30 active:scale-95 transition-transform"
           >
@@ -241,7 +241,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
             {/* Governorate Dropdown */}
             <div className="relative">
-              <select 
+              <select
                 className="w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none"
                 value={addressForm.governorate}
                 onChange={handleGovernorateChange}
@@ -256,10 +256,10 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
             {/* Area Dropdown */}
             <div className="relative">
-              <select 
+              <select
                 className={`w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none ${!addressForm.governorate ? 'opacity-50 cursor-not-allowed' : ''}`}
                 value={addressForm.area}
-                onChange={e => setAddressForm({...addressForm, area: e.target.value})}
+                onChange={e => setAddressForm({ ...addressForm, area: e.target.value })}
                 disabled={!addressForm.governorate}
               >
                 <option value="" disabled>المنطقة</option>
@@ -270,109 +270,109 @@ const CartFlow: React.FC<CartFlowProps> = ({
               <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec pointer-events-none" size={18} />
             </div>
 
-            <textarea 
-              placeholder="العنوان التفصيلي" 
+            <textarea
+              placeholder="العنوان التفصيلي"
               className="w-full p-4 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm h-24 resize-none"
-              value={addressForm.details} onChange={e => setAddressForm({...addressForm, details: e.target.value})}
+              value={addressForm.details} onChange={e => setAddressForm({ ...addressForm, details: e.target.value })}
             />
           </div>
         </section>
 
         {/* Wallets Redemption Section */}
         <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-app-card/30">
-           <h2 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2">
+          <h2 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2">
             <Wallet size={18} className="text-app-gold" />
             المحفظة والخصومات
           </h2>
-          
+
           {/* Game Wallet */}
           <div className="mb-4 pb-4 border-b border-app-card/20">
-             <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className={useGameBalance ? 'text-green-500' : 'text-gray-300'} />
-                  <span className="text-sm font-bold text-app-text">رصيد الجوائز</span>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className={useGameBalance ? 'text-green-500' : 'text-gray-300'} />
+                <span className="text-sm font-bold text-app-text">رصيد الجوائز</span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold text-app-text block">{gameBalance.toFixed(3)} د.ك</span>
+                <span className="text-[10px] text-app-textSec">متاح</span>
+              </div>
+            </div>
+
+            {gameBalance > 0 ? (
+              <div className="bg-app-bg rounded-xl p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs text-app-textSec flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={useGameBalance}
+                      onChange={(e) => setUseGameBalance(e.target.checked)}
+                      className="rounded text-app-gold focus:ring-app-gold"
+                    />
+                    استخدام الرصيد
+                  </label>
+                  <span className="text-xs font-bold text-app-gold">
+                    الحد الأقصى: {maxGameRedemption.toFixed(3)} د.ك
+                  </span>
                 </div>
-                <div className="text-right">
-                   <span className="text-xs font-bold text-app-text block">{gameBalance.toFixed(3)} د.ك</span>
-                   <span className="text-[10px] text-app-textSec">متاح</span>
-                </div>
-             </div>
-             
-             {gameBalance > 0 ? (
-               <div className="bg-app-bg rounded-xl p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs text-app-textSec flex items-center gap-1">
-                      <input 
-                        type="checkbox" 
-                        checked={useGameBalance}
-                        onChange={(e) => setUseGameBalance(e.target.checked)}
-                        className="rounded text-app-gold focus:ring-app-gold"
-                      />
-                      استخدام الرصيد
-                    </label>
-                    <span className="text-xs font-bold text-app-gold">
-                      الحد الأقصى: {maxGameRedemption.toFixed(3)} د.ك
-                    </span>
+                {useGameBalance && (
+                  <div>
+                    <input
+                      type="range"
+                      min="0"
+                      max={maxGameRedemption}
+                      step="0.100"
+                      value={gameAmountToUse}
+                      onChange={(e) => setGameAmountToUse(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-app-gold"
+                    />
+                    <div className="text-center mt-1 text-xs font-bold text-app-text">
+                      خصم: {gameAmountToUse.toFixed(3)} د.ك
+                    </div>
                   </div>
-                  {useGameBalance && (
-                     <div>
-                       <input 
-                        type="range"
-                        min="0"
-                        max={maxGameRedemption}
-                        step="0.100"
-                        value={gameAmountToUse}
-                        onChange={(e) => setGameAmountToUse(parseFloat(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-app-gold"
-                       />
-                       <div className="text-center mt-1 text-xs font-bold text-app-text">
-                         خصم: {gameAmountToUse.toFixed(3)} د.ك
-                       </div>
-                     </div>
-                  )}
-                  <p className="text-[10px] text-app-textSec mt-1">يمكن استخدام رصيد الجوائز لخصم حتى 5 د.ك على كل طلب، مهما كانت قيمة الطلب.</p>
-               </div>
-             ) : (
-                <p className="text-xs text-app-textSec italic">لا يوجد رصيد متاح</p>
-             )}
+                )}
+                <p className="text-[10px] text-app-textSec mt-1">يمكن استخدام رصيد الجوائز لخصم حتى 5 د.ك على كل طلب، مهما كانت قيمة الطلب.</p>
+              </div>
+            ) : (
+              <p className="text-xs text-app-textSec italic">لا يوجد رصيد متاح</p>
+            )}
           </div>
 
           {/* Loyalty Points */}
           <div>
-             <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className={useLoyaltyPoints ? 'text-green-500' : 'text-gray-300'} />
-                  <span className="text-sm font-bold text-app-text">نقاط الولاء</span>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className={useLoyaltyPoints ? 'text-green-500' : 'text-gray-300'} />
+                <span className="text-sm font-bold text-app-text">نقاط الولاء</span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold text-app-text block">{loyaltyPoints} نقطة</span>
+                <span className="text-[10px] text-app-textSec">≈ {(loyaltyPoints * LOYALTY_POINT_VALUE_KD).toFixed(3)} د.ك</span>
+              </div>
+            </div>
+
+            {loyaltyPoints > 0 ? (
+              <div className="bg-app-bg rounded-xl p-3 flex items-center justify-between">
+                <div>
+                  <label className="text-xs text-app-textSec flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useLoyaltyPoints}
+                      onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
+                      className="rounded text-app-gold focus:ring-app-gold"
+                    />
+                    استبدال الكل
+                  </label>
+                  <p className="text-[10px] text-app-textSec mt-1">يمكن استخدام النقاط بالكامل.</p>
                 </div>
-                <div className="text-right">
-                   <span className="text-xs font-bold text-app-text block">{loyaltyPoints} نقطة</span>
-                   <span className="text-[10px] text-app-textSec">≈ {(loyaltyPoints * LOYALTY_POINT_VALUE_KD).toFixed(3)} د.ك</span>
-                </div>
-             </div>
-             
-             {loyaltyPoints > 0 ? (
-               <div className="bg-app-bg rounded-xl p-3 flex items-center justify-between">
-                  <div>
-                    <label className="text-xs text-app-textSec flex items-center gap-1 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={useLoyaltyPoints}
-                        onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
-                        className="rounded text-app-gold focus:ring-app-gold"
-                      />
-                      استبدال الكل
-                    </label>
-                    <p className="text-[10px] text-app-textSec mt-1">يمكن استخدام النقاط بالكامل.</p>
-                  </div>
-                  {useLoyaltyPoints && (
-                     <span className="text-xs font-bold text-green-600">
-                        -{Math.min(finalLoyaltyDeduction).toFixed(3)} د.ك
-                     </span>
-                  )}
-               </div>
-             ) : (
-                <p className="text-xs text-app-textSec italic">لا توجد نقاط متاحة</p>
-             )}
+                {useLoyaltyPoints && (
+                  <span className="text-xs font-bold text-green-600">
+                    -{Math.min(finalLoyaltyDeduction).toFixed(3)} د.ك
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-app-textSec italic">لا توجد نقاط متاحة</p>
+            )}
           </div>
         </section>
 
@@ -383,7 +383,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
             طريقة الدفع
           </h2>
           <div className="space-y-3">
-            <button 
+            <button
               onClick={() => setPaymentMethod('online')}
               className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === 'online' ? 'border-app-gold bg-app-gold/5' : 'border-white bg-app-bg'}`}
             >
@@ -393,7 +393,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
               </div>
               <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === 'online' ? 'border-app-gold bg-app-gold' : 'border-app-card'}`} />
             </button>
-            <button 
+            <button
               onClick={() => setPaymentMethod('cod')}
               className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === 'cod' ? 'border-app-gold bg-app-gold/5' : 'border-white bg-app-bg'}`}
             >
@@ -409,33 +409,33 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
       <div className="p-6 bg-white border-t border-app-card/30">
         <div className="space-y-2 mb-4 text-xs font-medium text-app-textSec">
-           <div className="flex justify-between">
-              <span>قيمة الطلب:</span>
-              <span>{subtotal.toFixed(3)} د.ك</span>
-           </div>
-           <div className="flex justify-between">
-              <span>التوصيل:</span>
-              <span>{deliveryFee.toFixed(3)} د.ك</span>
-           </div>
-           {finalGameDeduction > 0 && (
-             <div className="flex justify-between text-app-gold">
-                <span>خصم رصيد الألعاب:</span>
-                <span>-{finalGameDeduction.toFixed(3)} د.ك</span>
-             </div>
-           )}
-           {finalLoyaltyDeduction > 0 && (
-             <div className="flex justify-between text-app-gold">
-                <span>خصم النقاط:</span>
-                <span>-{finalLoyaltyDeduction.toFixed(3)} د.ك</span>
-             </div>
-           )}
-           <div className="flex justify-between pt-2 border-t border-dashed border-app-card/50 text-base font-bold text-app-text">
-              <span>الإجمالي النهائي:</span>
-              <span>{finalTotal.toFixed(3)} د.ك</span>
-           </div>
+          <div className="flex justify-between">
+            <span>قيمة الطلب:</span>
+            <span>{subtotal.toFixed(3)} د.ك</span>
+          </div>
+          <div className="flex justify-between">
+            <span>التوصيل:</span>
+            <span>{deliveryFee.toFixed(3)} د.ك</span>
+          </div>
+          {finalGameDeduction > 0 && (
+            <div className="flex justify-between text-app-gold">
+              <span>خصم رصيد الألعاب:</span>
+              <span>-{finalGameDeduction.toFixed(3)} د.ك</span>
+            </div>
+          )}
+          {finalLoyaltyDeduction > 0 && (
+            <div className="flex justify-between text-app-gold">
+              <span>خصم النقاط:</span>
+              <span>-{finalLoyaltyDeduction.toFixed(3)} د.ك</span>
+            </div>
+          )}
+          <div className="flex justify-between pt-2 border-t border-dashed border-app-card/50 text-base font-bold text-app-text">
+            <span>الإجمالي النهائي:</span>
+            <span>{finalTotal.toFixed(3)} د.ك</span>
+          </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={handlePay}
           disabled={isProcessing}
           className="w-full bg-app-gold text-white font-bold py-4 rounded-2xl shadow-lg shadow-app-gold/30 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
@@ -459,20 +459,20 @@ const CartFlow: React.FC<CartFlowProps> = ({
       <p className="text-app-textSec mb-6 leading-relaxed">
         تم استلام طلبك بنجاح، وسيتم التواصل معك لتأكيد التفاصيل.
       </p>
-      
+
       <div className="bg-app-bg px-6 py-3 rounded-2xl mb-10">
         <span className="text-app-textSec text-xs font-bold block mb-1">رقم الطلب</span>
         <span className="text-app-gold font-bold text-lg">#{lastOrderId}</span>
       </div>
 
       <div className="w-full space-y-3">
-        <button 
+        <button
           onClick={onClose}
           className="w-full bg-app-gold text-white font-bold py-4 rounded-2xl shadow-lg shadow-app-gold/30 active:scale-95 transition-transform"
         >
           الرجوع للرئيسية
         </button>
-        <button 
+        <button
           onClick={() => onViewOrderDetails(lastOrderId)}
           className="w-full text-app-gold font-bold py-4 rounded-2xl active:bg-app-bg transition-colors"
         >

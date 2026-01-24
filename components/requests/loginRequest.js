@@ -1,4 +1,3 @@
-// lib/api/login.js
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';

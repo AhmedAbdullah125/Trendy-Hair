@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Heart, Plus } from "lucide-react";
 import { Product } from "../types";
 import { toggleFavourite } from "./requests/toggleFavourites";
+import { useAddToCart } from "./requests/useAddToCart";
 
 interface ProductCardProps {
   product: Product;
   isFavourite: boolean;
   onToggleFavourite: (id: number) => void;
-  onAddToCart: (product: Product, quantity: number) => void;
   onClick: (product: Product) => void;
   lang?: string;
 }
@@ -16,40 +16,42 @@ const ProductCard: React.FC<ProductCardProps> = ({
   product,
   isFavourite,
   onToggleFavourite,
-  onAddToCart,
   onClick,
   lang = "ar",
 }) => {
   const [favLoading, setFavLoading] = useState(false);
+
+  // ✅ Add to cart mutation
+  const addMut = useAddToCart();
 
   // ✅ Local override (optimistic) — null يعني اعتمد على props / product.isFavorite
   const [localFavOverride, setLocalFavOverride] = useState<boolean | null>(null);
 
   // ✅ مصدر الحقيقة للعرض داخل الكارد
   const isFav = useMemo(() => {
-    const base = product.isFavorite ?? isFavourite; // حسب بياناتك
+    const base = (product as any).isFavorite ?? isFavourite;
     return localFavOverride === null ? base : localFavOverride;
-  }, [product.isFavorite, isFavourite, localFavOverride]);
+  }, [(product as any).isFavorite, isFavourite, localFavOverride]);
 
-  // لو الـ props اتغيرت من برا (refetch/parent state) صَفّر override
   useEffect(() => {
     setLocalFavOverride(null);
-  }, [product.isFavorite, isFavourite]);
+  }, [(product as any).isFavorite, isFavourite]);
 
   const handleToggleFavourite = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (favLoading) return;
 
     const next = !isFav;
-
-    // ✅ optimistic UI
     setLocalFavOverride(next);
-
-    // ✅ notify parent (في FavoritesTab هيعمل hide فورًا)
     onToggleFavourite(product.id);
 
-    // 🔥 backend
     await toggleFavourite(product.id, setFavLoading, lang);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (addMut.isPending) return;
+    addMut.mutate({ product_id: product.id, quantity: 1, lang });
   };
 
   return (
@@ -59,7 +61,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     >
       <div className="relative w-full aspect-square bg-app-bg/50 overflow-hidden">
         <img
-          src={product.image}
+          src={(product as any).image}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -87,21 +89,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-3 pt-2 mt-auto flex items-center justify-between bg-white">
         <div className="flex flex-col items-start">
           <span className="text-sm font-bold text-app-gold font-alexandria">
-            {product.price}
+            {(product as any).price}
           </span>
-          {product.oldPrice && (
+
+          {(product as any).oldPrice && (
             <span className="text-[9px] text-app-textSec line-through opacity-60 mt-0.5">
-              {product.oldPrice}
+              {(product as any).oldPrice}
             </span>
           )}
         </div>
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddToCart(product, 1);
-          }}
-          className="bg-app-gold text-white text-[10px] font-bold py-1.5 px-3 rounded-xl active:scale-90 transition-transform flex items-center gap-1"
+          onClick={handleAddToCart}
+          disabled={addMut.isPending}
+          className="bg-app-gold text-white text-[10px] font-bold py-1.5 px-3 rounded-xl active:scale-90 transition-transform flex items-center gap-1 disabled:opacity-60"
         >
           <span>أضف</span>
           <Plus size={12} />
