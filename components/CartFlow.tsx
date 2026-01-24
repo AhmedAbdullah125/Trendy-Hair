@@ -1,31 +1,143 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
-import { ShoppingBag, ArrowRight, Trash2, Minus, Plus, CheckCircle2, Package, CreditCard, Banknote, ChevronDown, Wallet, Award } from 'lucide-react';
-import { CartItem, Order } from '../App';
-import { LOYALTY_POINT_VALUE_KD, GAME_REDEMPTION_CAP_KD } from '../constants';
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ShoppingBag,
+  ArrowRight,
+  Trash2,
+  Minus,
+  Plus,
+  CheckCircle2,
+  Package,
+  CreditCard,
+  Banknote,
+  ChevronDown,
+  Wallet,
+} from "lucide-react";
+import { CartItem, Order } from "../App";
+import { LOYALTY_POINT_VALUE_KD, GAME_REDEMPTION_CAP_KD } from "../constants";
+import { useDeleteCartItem } from "./requests/useDeleteCartItem";
 
 interface CartFlowProps {
-  cartItems: CartItem[];
+  cartItems: CartItem[]; // ✅ لازم كل عنصر يكون فيه id (cart_item_id) + product + quantity
   onClose: () => void;
+
+  // quantity update (لو عندك API update quantity لاحقاً)
   onUpdateQuantity: (productId: number, delta: number) => void;
+
+  // local fallbacks (مش ضروريين لو بتعتمد على invalidateQueries(["cart"]))
   onRemoveItem: (productId: number) => void;
   onClearCart: () => void;
+
   onAddOrder: (order: Order, paidAmountKD: number) => void;
   onViewOrderDetails: (orderId: string) => void;
+
   gameBalance: number;
   loyaltyPoints: number;
   onDeductWallets: (gameAmount: number, pointsAmount: number) => void;
+
+  lang?: string;
 }
 
-type CheckoutStep = 'cart' | 'details' | 'success';
+type CheckoutStep = "cart" | "details" | "success";
 
 const KUWAIT_REGIONS: Record<string, string[]> = {
-  "العاصمة": ["مدينة الكويت", "دسمان", "الشرق", "بنيد القار", "الدسمة", "الدعية", "المنصورية", "ضاحية عبد الله السالم", "النزهة", "الفيحاء", "الشامية", "الروضة", "العديلية", "الخالدية", "كيفان", "غرناطة", "الصليبيخات", "الدوحة", "النهضة", "جابر الأحمد", "القيروان"],
-  "الأحمدي": ["الفنطاس", "العقيلة", "الظهر", "المقوع", "المهبولة", "الرقة", "هدية", "أبو حليفة", "الصباحية", "المنقف", "الفحيحيل", "الأحمدي", "الخيران", "الوفرة", "فهد الأحمد", "جابر العلي", "صباح الأحمد"],
-  "الفروانية": ["أبرق خيطان", "الأندلس", "اشبيلية", "جليب الشيوخ", "خيطان", "العمرية", "العارضية", "الفردوس", "الحساوي", "الشدادية", "الرابية", "الرحاب", "صباح الناصر", "عبد الله المبارك"],
-  "الجهراء": ["الصليبية", "أمغرة", "النعيم", "القصر", "الواحة", "تيماء", "النسيم", "العيون", "كاظمة", "سعد العبد الله", "الجهراء الجديدة"],
-  "حولي": ["حولي", "الشعب", "السالمية", "الرميثية", "الجابرية", "مشرف", "بيان", "البدع", "النقرة", "ميدان حولي", "ضاحية مبارك العبد الله", "سلوى", "جنوب السرة"],
-  "مبارك الكبير": ["العدان", "القصور", "القرين", "مبارك الكبير", "المسيلة", "المسايل", "أبو فطيرة", "أبو الحصانية", "صباح السالم", "الفنيطيس"]
+  العاصمة: [
+    "مدينة الكويت",
+    "دسمان",
+    "الشرق",
+    "بنيد القار",
+    "الدسمة",
+    "الدعية",
+    "المنصورية",
+    "ضاحية عبد الله السالم",
+    "النزهة",
+    "الفيحاء",
+    "الشامية",
+    "الروضة",
+    "العديلية",
+    "الخالدية",
+    "كيفان",
+    "غرناطة",
+    "الصليبيخات",
+    "الدوحة",
+    "النهضة",
+    "جابر الأحمد",
+    "القيروان",
+  ],
+  الأحمدي: [
+    "الفنطاس",
+    "العقيلة",
+    "الظهر",
+    "المقوع",
+    "المهبولة",
+    "الرقة",
+    "هدية",
+    "أبو حليفة",
+    "الصباحية",
+    "المنقف",
+    "الفحيحيل",
+    "الأحمدي",
+    "الخيران",
+    "الوفرة",
+    "فهد الأحمد",
+    "جابر العلي",
+    "صباح الأحمد",
+  ],
+  الفروانية: [
+    "أبرق خيطان",
+    "الأندلس",
+    "اشبيلية",
+    "جليب الشيوخ",
+    "خيطان",
+    "العمرية",
+    "العارضية",
+    "الفردوس",
+    "الحساوي",
+    "الشدادية",
+    "الرابية",
+    "الرحاب",
+    "صباح الناصر",
+    "عبد الله المبارك",
+  ],
+  الجهراء: [
+    "الصليبية",
+    "أمغرة",
+    "النعيم",
+    "القصر",
+    "الواحة",
+    "تيماء",
+    "النسيم",
+    "العيون",
+    "كاظمة",
+    "سعد العبد الله",
+    "الجهراء الجديدة",
+  ],
+  حولي: [
+    "حولي",
+    "الشعب",
+    "السالمية",
+    "الرميثية",
+    "الجابرية",
+    "مشرف",
+    "بيان",
+    "البدع",
+    "النقرة",
+    "ميدان حولي",
+    "ضاحية مبارك العبد الله",
+    "سلوى",
+    "جنوب السرة",
+  ],
+  "مبارك الكبير": [
+    "العدان",
+    "القصور",
+    "القرين",
+    "مبارك الكبير",
+    "المسيلة",
+    "المسايل",
+    "أبو فطيرة",
+    "أبو الحصانية",
+    "صباح السالم",
+    "الفنيطيس",
+  ],
 };
 
 const CartFlow: React.FC<CartFlowProps> = ({
@@ -38,11 +150,12 @@ const CartFlow: React.FC<CartFlowProps> = ({
   onViewOrderDetails,
   gameBalance,
   loyaltyPoints,
-  onDeductWallets
+  onDeductWallets,
+  lang = "ar",
 }) => {
-  const [step, setStep] = useState<CheckoutStep>('cart');
+  const [step, setStep] = useState<CheckoutStep>("cart");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
 
   // Wallet Usage State
   const [useGameBalance, setUseGameBalance] = useState(false);
@@ -50,120 +163,183 @@ const CartFlow: React.FC<CartFlowProps> = ({
   const [gameAmountToUse, setGameAmountToUse] = useState<number>(0);
 
   const [addressForm, setAddressForm] = useState({
-    name: 'nader',
-    governorate: '',
-    area: '',
-    details: ''
+    name: "nader",
+    governorate: "",
+    area: "",
+    details: "",
   });
 
-  const [lastOrderId, setLastOrderId] = useState('');
+  const [lastOrderId, setLastOrderId] = useState("");
 
+  // ✅ Delete mutation (item + clear_all)
+  const delMut = useDeleteCartItem();
+
+  // ✅ subtotal: supports "xx د.ك" OR number
   const subtotal = useMemo(() => {
     return cartItems.reduce((sum, item) => {
-      const price = parseFloat(item.product.price.replace(/[^\d.]/g, ''));
-      return sum + (price * item.quantity);
+      const raw = (item.product as any)?.price;
+      const price =
+        typeof raw === "number"
+          ? raw
+          : parseFloat(String(raw ?? "").replace(/[^\d.]/g, "")) || 0;
+      return sum + price * item.quantity;
     }, 0);
   }, [cartItems]);
 
-  const deliveryFee = 2.000;
+  const deliveryFee = 2.0;
 
-  // Max redeemable game balance = 5 KWD flat cap per order (or balance if less)
   const maxGameRedemption = useMemo(() => {
     return Math.min(gameBalance, GAME_REDEMPTION_CAP_KD);
   }, [gameBalance]);
 
-  // Max redeemable loyalty points value
   const maxLoyaltyRedemptionValue = useMemo(() => {
     const pointsValue = loyaltyPoints * LOYALTY_POINT_VALUE_KD;
-    // Can cover whole order including delivery? Usually rewards cover subtotal, but let's assume total for loyalty simplicity
     return Math.min(pointsValue, subtotal + deliveryFee);
-  }, [loyaltyPoints, subtotal, deliveryFee]);
+  }, [loyaltyPoints, subtotal]);
 
-  // Calculate Finals
   const { finalGameDeduction, finalLoyaltyDeduction, finalTotal } = useMemo(() => {
     let toPay = subtotal + deliveryFee;
     let gameDeduction = 0;
     let loyaltyDeduction = 0;
 
-    // 1. Apply Game Balance (capped)
     if (useGameBalance) {
       gameDeduction = Math.min(gameAmountToUse, maxGameRedemption, toPay);
       toPay -= gameDeduction;
     }
 
-    // 2. Apply Loyalty Points (uncapped)
     if (useLoyaltyPoints) {
-      // Amount needed or amount available
-      const needed = toPay;
       const available = loyaltyPoints * LOYALTY_POINT_VALUE_KD;
-      loyaltyDeduction = Math.min(needed, available);
+      loyaltyDeduction = Math.min(toPay, available);
       toPay -= loyaltyDeduction;
     }
 
     return {
       finalGameDeduction: parseFloat(gameDeduction.toFixed(3)),
       finalLoyaltyDeduction: parseFloat(loyaltyDeduction.toFixed(3)),
-      finalTotal: parseFloat(toPay.toFixed(3))
+      finalTotal: parseFloat(toPay.toFixed(3)),
     };
-  }, [subtotal, deliveryFee, useGameBalance, gameAmountToUse, maxGameRedemption, useLoyaltyPoints, loyaltyPoints]);
+  }, [
+    subtotal,
+    deliveryFee,
+    useGameBalance,
+    gameAmountToUse,
+    maxGameRedemption,
+    useLoyaltyPoints,
+    loyaltyPoints,
+  ]);
 
-  // Reset redemption when step changes
   useEffect(() => {
-    if (step === 'details') {
+    if (step === "details") {
       setUseGameBalance(false);
       setUseLoyaltyPoints(false);
       setGameAmountToUse(maxGameRedemption);
     }
   }, [step, maxGameRedemption]);
 
-  const handlePay = () => {
-    if (!addressForm.governorate || !addressForm.area || !addressForm.details) {
-      alert('يرجى إكمال جميع بيانات العنوان');
+  const handleGovernorateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setAddressForm((prev) => ({
+      ...prev,
+      governorate: e.target.value,
+      area: "",
+    }));
+  };
+
+  // ✅ حذف عنصر (API) — يستخدم cart item id الحقيقي: item.id
+  const handleDeleteItem = (item: CartItem) => {
+    if (delMut.isPending) return;
+
+    const cartItemId = item.id; // ✅ FIX
+    if (!cartItemId) {
+      onRemoveItem(item.product.id);
       return;
     }
+
+    delMut.mutate(
+      { cartItemId, lang },
+      {
+        onSuccess: () => {
+          // optional local fallback
+          onRemoveItem?.(item.product.id);
+        },
+      }
+    );
+  };
+
+  // ✅ تفريغ السلة clear_all=true — لازم أي cartItemId في path
+  const handleClearAll = () => {
+    if (delMut.isPending) return;
+
+    const firstId = cartItems?.[0]?.id; // ✅ FIX
+    if (!firstId) {
+      onClearCart?.();
+      return;
+    }
+
+    delMut.mutate(
+      { cartItemId: firstId, clear_all: true, lang },
+      {
+        onSuccess: () => {
+          // optional local fallback
+          onClearCart?.();
+        },
+      }
+    );
+  };
+
+  const handlePay = () => {
+    if (!addressForm.governorate || !addressForm.area || !addressForm.details) {
+      alert("يرجى إكمال جميع بيانات العنوان");
+      return;
+    }
+
     setIsProcessing(true);
 
-    // Simulate payment
     setTimeout(() => {
       const orderId = `TH-${Math.floor(100000 + Math.random() * 900000)}`;
       const newOrder: Order = {
         id: orderId,
-        date: new Date().toLocaleDateString('en-GB'),
-        status: 'قيد المعالجة',
+        date: new Date().toLocaleDateString("en-GB"),
+        status: "قيد المعالجة",
         total: `${finalTotal.toFixed(3)} د.ك`,
-        items: [...cartItems]
+        items: [...cartItems],
       };
 
-      // Calculate points to deduct
-      const pointsToDeduct = useLoyaltyPoints ? Math.ceil(finalLoyaltyDeduction / LOYALTY_POINT_VALUE_KD) : 0;
+      const pointsToDeduct = useLoyaltyPoints
+        ? Math.ceil(finalLoyaltyDeduction / LOYALTY_POINT_VALUE_KD)
+        : 0;
 
-      // Execute deductions
       onDeductWallets(finalGameDeduction, pointsToDeduct);
 
       setLastOrderId(orderId);
-      // Pass the paid amount to calculate NEW points earned
       onAddOrder(newOrder, finalTotal);
-      setIsProcessing(false);
-      onClearCart();
-      setStep('success');
-    }, 2000);
-  };
 
-  const handleGovernorateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setAddressForm({
-      ...addressForm,
-      governorate: e.target.value,
-      area: '' // Reset area when governorate changes
-    });
+      setIsProcessing(false);
+      onClearCart?.(); // UI local
+      setStep("success");
+    }, 2000);
   };
 
   const renderCart = () => (
     <div className="flex flex-col h-full animate-fadeIn">
       <header className="px-6 pt-6 pb-4 bg-white border-b border-app-card/30 flex items-center justify-between">
         <h1 className="text-xl font-bold text-app-text">سلة التسوق</h1>
-        <button onClick={onClose} className="p-2 hover:bg-app-bg rounded-full text-app-text">
-          <ArrowRight size={24} />
-        </button>
+
+        <div className="flex items-center gap-2">
+          {cartItems.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              disabled={delMut.isPending}
+              className="p-2 hover:bg-red-50 rounded-full text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="تفريغ السلة"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
+
+          <button onClick={onClose} className="p-2 hover:bg-app-bg rounded-full text-app-text">
+            <ArrowRight size={24} />
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-4">
@@ -175,27 +351,63 @@ const CartFlow: React.FC<CartFlowProps> = ({
             <p className="text-app-textSec font-medium">السلة فارغة حالياً</p>
           </div>
         ) : (
-          cartItems.map((item) => (
-            <div key={item.product.id} className="bg-white rounded-3xl p-4 shadow-sm border border-app-card/30 flex gap-4">
-              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-app-bg border border-app-card/10 flex-shrink-0">
-                <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-app-text leading-tight mb-1">{item.product.name}</h3>
-                  <p className="text-xs font-bold text-app-gold">{item.product.price}</p>
+          cartItems.map((item) => {
+            const img =
+              (item.product as any)?.image ||
+              (item.product as any)?.main_image ||
+              (item.product as any)?.products?.main_image;
+
+            return (
+              <div
+                key={item.id} // ✅ FIX: stable key uses cart item id
+                className="bg-white rounded-3xl p-4 shadow-sm border border-app-card/30 flex gap-4"
+              >
+                <div className="w-24 h-24 rounded-2xl overflow-hidden bg-app-bg border border-app-card/10 flex-shrink-0">
+                  <img src={img} alt={item.product.name} className="w-full h-full object-cover" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 bg-app-bg px-2 py-1 rounded-xl">
-                    <button onClick={() => onUpdateQuantity(item.product.id, 1)} className="p-1 text-app-gold"><Plus size={14} /></button>
-                    <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-                    <button onClick={() => onUpdateQuantity(item.product.id, -1)} className="p-1 text-app-gold"><Minus size={14} /></button>
+
+                <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-app-text leading-tight mb-1">
+                      {item.product.name}
+                    </h3>
+                    <p className="text-xs font-bold text-app-gold">{(item.product as any)?.price}</p>
                   </div>
-                  <button onClick={() => onRemoveItem(item.product.id)} className="text-red-400 p-2"><Trash2 size={16} /></button>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 bg-app-bg px-2 py-1 rounded-xl">
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, 1)}
+                        className="p-1 text-app-gold"
+                        disabled={delMut.isPending}
+                      >
+                        <Plus size={14} />
+                      </button>
+
+                      <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, -1)}
+                        className="p-1 text-app-gold"
+                        disabled={delMut.isPending}
+                      >
+                        <Minus size={14} />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteItem(item)}
+                      disabled={delMut.isPending}
+                      className="text-red-400 p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="حذف المنتج"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -205,8 +417,9 @@ const CartFlow: React.FC<CartFlowProps> = ({
             <span className="text-app-textSec font-bold">إجمالي السلة:</span>
             <span className="text-xl font-bold text-app-gold">{subtotal.toFixed(3)} د.ك</span>
           </div>
+
           <button
-            onClick={() => setStep('details')}
+            onClick={() => setStep("details")}
             className="w-full bg-app-gold text-white font-bold py-4 rounded-2xl shadow-lg shadow-app-gold/30 active:scale-95 transition-transform"
           >
             إتمام الشراء
@@ -220,76 +433,91 @@ const CartFlow: React.FC<CartFlowProps> = ({
     <div className="flex flex-col h-full animate-fadeIn bg-app-bg">
       <header className="px-6 pt-6 pb-4 bg-white border-b border-app-card/30 flex items-center justify-between">
         <h1 className="text-xl font-bold text-app-text">بيانات الشحن والدفع</h1>
-        <button onClick={() => setStep('cart')} className="p-2 hover:bg-app-bg rounded-full text-app-text">
+        <button onClick={() => setStep("cart")} className="p-2 hover:bg-app-bg rounded-full text-app-text">
           <ArrowRight size={24} />
         </button>
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
-        {/* Address Section */}
+        {/* Address */}
         <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-app-card/30">
           <h2 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2">
             <Package size={18} className="text-app-gold" />
             تفاصيل العنوان
           </h2>
+
           <div className="space-y-4">
-            {/* Full Name - Non-editable display */}
             <div className="w-full p-4 rounded-2xl border border-app-card bg-app-card/20 text-sm flex flex-col gap-1">
               <span className="text-[10px] text-app-textSec font-bold">الاسم الكامل</span>
               <span className="text-app-text font-bold">{addressForm.name}</span>
             </div>
 
-            {/* Governorate Dropdown */}
             <div className="relative">
               <select
                 className="w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none"
                 value={addressForm.governorate}
                 onChange={handleGovernorateChange}
               >
-                <option value="" disabled>المحافظة</option>
-                {Object.keys(KUWAIT_REGIONS).map(gov => (
-                  <option key={gov} value={gov}>{gov}</option>
+                <option value="" disabled>
+                  المحافظة
+                </option>
+                {Object.keys(KUWAIT_REGIONS).map((gov) => (
+                  <option key={gov} value={gov}>
+                    {gov}
+                  </option>
                 ))}
               </select>
-              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec pointer-events-none" size={18} />
+              <ChevronDown
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec pointer-events-none"
+                size={18}
+              />
             </div>
 
-            {/* Area Dropdown */}
             <div className="relative">
               <select
-                className={`w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none ${!addressForm.governorate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none ${!addressForm.governorate ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 value={addressForm.area}
-                onChange={e => setAddressForm({ ...addressForm, area: e.target.value })}
+                onChange={(e) => setAddressForm((prev) => ({ ...prev, area: e.target.value }))}
                 disabled={!addressForm.governorate}
               >
-                <option value="" disabled>المنطقة</option>
-                {addressForm.governorate && KUWAIT_REGIONS[addressForm.governorate].map(area => (
-                  <option key={area} value={area}>{area}</option>
-                ))}
+                <option value="" disabled>
+                  المنطقة
+                </option>
+                {addressForm.governorate &&
+                  KUWAIT_REGIONS[addressForm.governorate].map((area) => (
+                    <option key={area} value={area}>
+                      {area}
+                    </option>
+                  ))}
               </select>
-              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec pointer-events-none" size={18} />
+              <ChevronDown
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec pointer-events-none"
+                size={18}
+              />
             </div>
 
             <textarea
               placeholder="العنوان التفصيلي"
               className="w-full p-4 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm h-24 resize-none"
-              value={addressForm.details} onChange={e => setAddressForm({ ...addressForm, details: e.target.value })}
+              value={addressForm.details}
+              onChange={(e) => setAddressForm((prev) => ({ ...prev, details: e.target.value }))}
             />
           </div>
         </section>
 
-        {/* Wallets Redemption Section */}
+        {/* Wallets */}
         <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-app-card/30">
           <h2 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2">
             <Wallet size={18} className="text-app-gold" />
             المحفظة والخصومات
           </h2>
 
-          {/* Game Wallet */}
+          {/* Game wallet */}
           <div className="mb-4 pb-4 border-b border-app-card/20">
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={16} className={useGameBalance ? 'text-green-500' : 'text-gray-300'} />
+                <CheckCircle2 size={16} className={useGameBalance ? "text-green-500" : "text-gray-300"} />
                 <span className="text-sm font-bold text-app-text">رصيد الجوائز</span>
               </div>
               <div className="text-right">
@@ -310,10 +538,9 @@ const CartFlow: React.FC<CartFlowProps> = ({
                     />
                     استخدام الرصيد
                   </label>
-                  <span className="text-xs font-bold text-app-gold">
-                    الحد الأقصى: {maxGameRedemption.toFixed(3)} د.ك
-                  </span>
+                  <span className="text-xs font-bold text-app-gold">الحد الأقصى: {maxGameRedemption.toFixed(3)} د.ك</span>
                 </div>
+
                 {useGameBalance && (
                   <div>
                     <input
@@ -330,23 +557,26 @@ const CartFlow: React.FC<CartFlowProps> = ({
                     </div>
                   </div>
                 )}
-                <p className="text-[10px] text-app-textSec mt-1">يمكن استخدام رصيد الجوائز لخصم حتى 5 د.ك على كل طلب، مهما كانت قيمة الطلب.</p>
+
+                <p className="text-[10px] text-app-textSec mt-1">
+                  يمكن استخدام رصيد الجوائز لخصم حتى 5 د.ك على كل طلب، مهما كانت قيمة الطلب.
+                </p>
               </div>
             ) : (
               <p className="text-xs text-app-textSec italic">لا يوجد رصيد متاح</p>
             )}
           </div>
 
-          {/* Loyalty Points */}
+          {/* Loyalty points */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={16} className={useLoyaltyPoints ? 'text-green-500' : 'text-gray-300'} />
+                <CheckCircle2 size={16} className={useLoyaltyPoints ? "text-green-500" : "text-gray-300"} />
                 <span className="text-sm font-bold text-app-text">نقاط الولاء</span>
               </div>
               <div className="text-right">
                 <span className="text-xs font-bold text-app-text block">{loyaltyPoints} نقطة</span>
-                <span className="text-[10px] text-app-textSec">≈ {(loyaltyPoints * LOYALTY_POINT_VALUE_KD).toFixed(3)} د.ك</span>
+                <span className="text-[10px] text-app-textSec">≈ {maxLoyaltyRedemptionValue.toFixed(3)} د.ك</span>
               </div>
             </div>
 
@@ -364,10 +594,9 @@ const CartFlow: React.FC<CartFlowProps> = ({
                   </label>
                   <p className="text-[10px] text-app-textSec mt-1">يمكن استخدام النقاط بالكامل.</p>
                 </div>
+
                 {useLoyaltyPoints && (
-                  <span className="text-xs font-bold text-green-600">
-                    -{Math.min(finalLoyaltyDeduction).toFixed(3)} د.ك
-                  </span>
+                  <span className="text-xs font-bold text-green-600">-{finalLoyaltyDeduction.toFixed(3)} د.ك</span>
                 )}
               </div>
             ) : (
@@ -376,32 +605,46 @@ const CartFlow: React.FC<CartFlowProps> = ({
           </div>
         </section>
 
-        {/* Payment Section */}
+        {/* Payment */}
         <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-app-card/30">
           <h2 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2">
             <CreditCard size={18} className="text-app-gold" />
             طريقة الدفع
           </h2>
+
           <div className="space-y-3">
             <button
-              onClick={() => setPaymentMethod('online')}
-              className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === 'online' ? 'border-app-gold bg-app-gold/5' : 'border-white bg-app-bg'}`}
+              onClick={() => setPaymentMethod("online")}
+              className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "online" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                }`}
             >
               <div className="flex items-center gap-3">
-                <CreditCard className={paymentMethod === 'online' ? 'text-app-gold' : 'text-app-textSec'} />
-                <span className={`text-sm font-bold ${paymentMethod === 'online' ? 'text-app-text' : 'text-app-textSec'}`}>دفع إلكتروني</span>
+                <CreditCard className={paymentMethod === "online" ? "text-app-gold" : "text-app-textSec"} />
+                <span className={`text-sm font-bold ${paymentMethod === "online" ? "text-app-text" : "text-app-textSec"}`}>
+                  دفع إلكتروني
+                </span>
               </div>
-              <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === 'online' ? 'border-app-gold bg-app-gold' : 'border-app-card'}`} />
+              <div
+                className={`w-5 h-5 rounded-full border-2 ${paymentMethod === "online" ? "border-app-gold bg-app-gold" : "border-app-card"
+                  }`}
+              />
             </button>
+
             <button
-              onClick={() => setPaymentMethod('cod')}
-              className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === 'cod' ? 'border-app-gold bg-app-gold/5' : 'border-white bg-app-bg'}`}
+              onClick={() => setPaymentMethod("cod")}
+              className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "cod" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                }`}
             >
               <div className="flex items-center gap-3">
-                <Banknote className={paymentMethod === 'cod' ? 'text-app-gold' : 'text-app-textSec'} />
-                <span className={`text-sm font-bold ${paymentMethod === 'cod' ? 'text-app-text' : 'text-app-textSec'}`}>دفع عند الاستلام</span>
+                <Banknote className={paymentMethod === "cod" ? "text-app-gold" : "text-app-textSec"} />
+                <span className={`text-sm font-bold ${paymentMethod === "cod" ? "text-app-text" : "text-app-textSec"}`}>
+                  دفع عند الاستلام
+                </span>
               </div>
-              <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === 'cod' ? 'border-app-gold bg-app-gold' : 'border-app-card'}`} />
+              <div
+                className={`w-5 h-5 rounded-full border-2 ${paymentMethod === "cod" ? "border-app-gold bg-app-gold" : "border-app-card"
+                  }`}
+              />
             </button>
           </div>
         </section>
@@ -417,18 +660,21 @@ const CartFlow: React.FC<CartFlowProps> = ({
             <span>التوصيل:</span>
             <span>{deliveryFee.toFixed(3)} د.ك</span>
           </div>
+
           {finalGameDeduction > 0 && (
             <div className="flex justify-between text-app-gold">
               <span>خصم رصيد الألعاب:</span>
               <span>-{finalGameDeduction.toFixed(3)} د.ك</span>
             </div>
           )}
+
           {finalLoyaltyDeduction > 0 && (
             <div className="flex justify-between text-app-gold">
               <span>خصم النقاط:</span>
               <span>-{finalLoyaltyDeduction.toFixed(3)} د.ك</span>
             </div>
           )}
+
           <div className="flex justify-between pt-2 border-t border-dashed border-app-card/50 text-base font-bold text-app-text">
             <span>الإجمالي النهائي:</span>
             <span>{finalTotal.toFixed(3)} د.ك</span>
@@ -443,7 +689,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
           {isProcessing ? (
             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            'ادفع الآن'
+            "ادفع الآن"
           )}
         </button>
       </div>
@@ -455,6 +701,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
       <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 text-green-500 animate-bounce">
         <CheckCircle2 size={56} />
       </div>
+
       <h1 className="text-2xl font-bold text-app-text mb-2">شكراً لطلبك!</h1>
       <p className="text-app-textSec mb-6 leading-relaxed">
         تم استلام طلبك بنجاح، وسيتم التواصل معك لتأكيد التفاصيل.
@@ -483,9 +730,12 @@ const CartFlow: React.FC<CartFlowProps> = ({
   );
 
   switch (step) {
-    case 'details': return renderDetails();
-    case 'success': return renderSuccess();
-    default: return renderCart();
+    case "details":
+      return renderDetails();
+    case "success":
+      return renderSuccess();
+    default:
+      return renderCart();
   }
 };
 

@@ -1,5 +1,3 @@
-
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppData, Product, Brand, Category, Package, Question, GameSettings, Review, ContentSettings } from '../types';
 import { STORAGE_KEYS, INITIAL_DATA, INITIAL_GAME_SETTINGS, INITIAL_CONTENT_SETTINGS } from '../constants';
@@ -8,7 +6,7 @@ interface DataContextType extends AppData {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (id: number) => void;
-  
+
   addPackage: (pkg: Omit<Package, 'id'>) => void;
   updatePackage: (pkg: Package) => void;
   deletePackage: (id: string) => void;
@@ -28,10 +26,10 @@ interface DataContextType extends AppData {
   addReview: (review: Omit<Review, 'id'>) => void;
   updateReview: (review: Review) => void;
   deleteReview: (id: string) => void;
-  
+
   updateGameSettings: (settings: GameSettings) => void;
   updateContentSettings: (settings: ContentSettings) => void;
-  
+
   refreshData: () => void;
 }
 
@@ -46,73 +44,73 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        
+
         let needsSave = false;
-        
+
         // Ensure questions array exists in stored data (migration)
         if (!parsed.questions) {
-            parsed.questions = INITIAL_DATA.questions;
-            needsSave = true;
+          parsed.questions = INITIAL_DATA.questions;
+          needsSave = true;
         }
 
         // Ensure game settings exist (migration)
         if (!parsed.gameSettings) {
-            parsed.gameSettings = INITIAL_GAME_SETTINGS;
-            needsSave = true;
+          parsed.gameSettings = INITIAL_GAME_SETTINGS;
+          needsSave = true;
         } else {
-            // MIGRATION: Convert Hours to Minutes if old format exists
-            const settings: any = parsed.gameSettings;
-            if (settings.cooldownLossHours !== undefined) {
-               settings.cooldownLossMinutes = (settings.cooldownLossHours * 60) || 60;
-               delete settings.cooldownLossHours;
-               needsSave = true;
-            } else if (settings.cooldownLossMinutes === undefined) {
-               settings.cooldownLossMinutes = INITIAL_GAME_SETTINGS.cooldownLossMinutes;
-               needsSave = true;
-            }
+          // MIGRATION: Convert Hours to Minutes if old format exists
+          const settings: any = parsed.gameSettings;
+          if (settings.cooldownLossHours !== undefined) {
+            settings.cooldownLossMinutes = (settings.cooldownLossHours * 60) || 60;
+            delete settings.cooldownLossHours;
+            needsSave = true;
+          } else if (settings.cooldownLossMinutes === undefined) {
+            settings.cooldownLossMinutes = INITIAL_GAME_SETTINGS.cooldownLossMinutes;
+            needsSave = true;
+          }
 
-            if (settings.cooldownWinHours !== undefined) {
-               settings.cooldownWinMinutes = (settings.cooldownWinHours * 60) || 1440;
-               delete settings.cooldownWinHours;
-               needsSave = true;
-            } else if (settings.cooldownWinMinutes === undefined) {
-               settings.cooldownWinMinutes = INITIAL_GAME_SETTINGS.cooldownWinMinutes;
-               needsSave = true;
-            }
+          if (settings.cooldownWinHours !== undefined) {
+            settings.cooldownWinMinutes = (settings.cooldownWinHours * 60) || 1440;
+            delete settings.cooldownWinHours;
+            needsSave = true;
+          } else if (settings.cooldownWinMinutes === undefined) {
+            settings.cooldownWinMinutes = INITIAL_GAME_SETTINGS.cooldownWinMinutes;
+            needsSave = true;
+          }
         }
 
         // Ensure Content Settings exist (migration)
         if (!parsed.contentSettings) {
-            parsed.contentSettings = INITIAL_CONTENT_SETTINGS;
-            needsSave = true;
+          parsed.contentSettings = INITIAL_CONTENT_SETTINGS;
+          needsSave = true;
         }
 
         // Ensure categories exist (migration for old data)
         if (!parsed.categories || parsed.categories.length === 0) {
-            parsed.categories = INITIAL_DATA.categories;
-            needsSave = true;
+          parsed.categories = INITIAL_DATA.categories;
+          needsSave = true;
         } else {
-            // Migration: Ensure all categories have isActive defined (default to true)
-            const migratedCategories = parsed.categories.map((c: any) => ({
-                ...c,
-                isActive: c.isActive !== undefined ? c.isActive : true
-            }));
-            
-            // Check if any change occurred
-            if (JSON.stringify(migratedCategories) !== JSON.stringify(parsed.categories)) {
-                parsed.categories = migratedCategories;
-                needsSave = true;
-            }
+          // Migration: Ensure all categories have isActive defined (default to true)
+          const migratedCategories = parsed.categories.map((c: any) => ({
+            ...c,
+            isActive: c.isActive !== undefined ? c.isActive : true
+          }));
+
+          // Check if any change occurred
+          if (JSON.stringify(migratedCategories) !== JSON.stringify(parsed.categories)) {
+            parsed.categories = migratedCategories;
+            needsSave = true;
+          }
         }
 
         // Ensure reviews exist (migration)
         if (!parsed.reviews) {
-            parsed.reviews = INITIAL_DATA.reviews;
-            needsSave = true;
+          parsed.reviews = INITIAL_DATA.reviews;
+          needsSave = true;
         }
 
         if (needsSave) {
-            saveToStorage(parsed);
+          saveToStorage(parsed);
         }
 
         setData(parsed);

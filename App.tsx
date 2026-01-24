@@ -37,8 +37,8 @@ import AdminReviews from './components/admin/AdminReviews';
 const AdminPlaceholder = ({ title }: { title: string }) => (
   <div className="p-10 text-center text-app-textSec font-bold text-xl">صفحة {title} قيد التطوير</div>
 );
-
 export interface CartItem {
+  id: number; // ✅ cart item id from API (it.id)
   product: Product;
   quantity: number;
 }
@@ -147,10 +147,9 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
         image: p.main_image,
         price: `${Number(current).toFixed(3)} د.ك`,
         oldPrice,
-        // لو عندك حقول إضافية في Product type سيبها
       } as any;
-
       return {
+        id: it.id,
         product,
         quantity: it.quantity,
       };
