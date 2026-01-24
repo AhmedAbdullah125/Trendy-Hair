@@ -8,7 +8,7 @@ import PlayTab from './components/PlayTab';
 import AccountTab from './components/AccountTab';
 import FavoritesTab from './components/FavoritesTab';
 import ReviewsTab from './components/ReviewsTab';
-import HomeTab from './components/HomeTab';
+import HomeTab from './components/home/HomeTab';
 import AllProductsPage from './components/AllProductsPage';
 import BrandPage from './components/BrandPage';
 import CartFlow from './components/CartFlow';
