@@ -16,7 +16,7 @@ const fetchCategories = async (lang) => {
 
   // if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await axios.post(`${API_BASE_URL}/lookups`, formData, { headers });
+  const response = await axios.post(`${API_BASE_URL}/v1/lookups`, formData, { headers });
   return response.data.items.categories;
 };
 

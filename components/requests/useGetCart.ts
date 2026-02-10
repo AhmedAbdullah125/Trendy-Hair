@@ -58,7 +58,7 @@ const fetchCart = async (lang: string) => {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   // ✅ GET بدون FormData
-  const res = await axios.get<CartApiResponse>(`${API_BASE_URL}/cart`, { headers });
+  const res = await axios.get<CartApiResponse>(`${API_BASE_URL}/v1/cart`, { headers });
   return res.data;
 };
 

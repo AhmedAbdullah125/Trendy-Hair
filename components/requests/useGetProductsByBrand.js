@@ -15,7 +15,7 @@ const fetchProducts = async (lang, page, brandId) => {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await axios.post(
-    `${API_BASE_URL}/products/by-brand/${brandId}`,
+    `${API_BASE_URL}/v1/products/by-brand/${brandId}`,
     formData,
     { headers }
   );

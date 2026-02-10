@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 export async function refreshToken(setLoading, lang) {
     setLoading(true)
-    const url = `${API_BASE_URL}/refresh-token`;
+    const url = `${API_BASE_URL}/v1/refresh-token`;
     const formData = new FormData();
     const refresh_token = localStorage.getItem("refresh_token");
     formData.append('grant_type', "refresh_token");

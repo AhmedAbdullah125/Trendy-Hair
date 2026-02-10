@@ -15,7 +15,7 @@ const fetchReviews = async (lang, page, pageSize) => {
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await axios.post(`${API_BASE_URL}/reviews`, formData, { headers });
+  const response = await axios.post(`${API_BASE_URL}/v1/reviews`, formData, { headers });
   return response.data.items;
 };
 

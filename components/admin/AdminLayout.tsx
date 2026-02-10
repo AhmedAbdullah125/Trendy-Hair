@@ -1,16 +1,20 @@
 
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, Package, ShoppingBag, Users, Wallet, 
-  Gamepad2, Home, FileBarChart, Settings, 
+import {
+  LayoutDashboard, Package, ShoppingBag, Users, Wallet,
+  Gamepad2, Home, FileBarChart, Settings,
   LogOut, Menu, X, Bell, Search, ShieldCheck, Layers, Tag, Grid, Star, Trash2
 } from 'lucide-react';
+import { useAdminTokenRefresh } from '../../hooks/useAdminTokenRefresh';
 
-const AdminLayout: React.FC = () => {
+const AdminLayout: React.FC<{ onAdminLogout: () => void }> = ({ onAdminLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Auto-refresh admin token
+  useAdminTokenRefresh();
 
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', path: '/admin/dashboard' },
@@ -31,28 +35,28 @@ const AdminLayout: React.FC = () => {
 
   const handleClearCache = async () => {
     if (window.confirm("هل أنت متأكد من مسح الكاش وإعادة ضبط البيانات التجريبية؟")) {
-        // Clear Local Storage
-        localStorage.clear();
+      // Clear Local Storage
+      localStorage.clear();
 
-        // Clear Cache Storage
-        if ('caches' in window) {
-            try {
-                const cacheNames = await caches.keys();
-                await Promise.all(cacheNames.map(name => caches.delete(name)));
-            } catch (e) {
-                console.error("Error clearing cache storage:", e);
-            }
+      // Clear Cache Storage
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        } catch (e) {
+          console.error("Error clearing cache storage:", e);
         }
+      }
 
-        // Reload the app
-        window.location.reload();
+      // Reload the app
+      window.location.reload();
     }
   };
 
   return (
     <div className="flex h-screen bg-[#F7F4EE] font-alexandria overflow-hidden" dir="rtl">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`
           bg-white shadow-xl z-20 transition-all duration-300 flex flex-col fixed md:relative h-full
           ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 translate-x-full md:w-20 md:translate-x-0'}
@@ -77,8 +81,8 @@ const AdminLayout: React.FC = () => {
               to={item.path}
               className={({ isActive }) => `
                 flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
-                ${isActive 
-                  ? 'bg-app-gold text-white shadow-md shadow-app-gold/20' 
+                ${isActive
+                  ? 'bg-app-gold text-white shadow-md shadow-app-gold/20'
                   : 'text-app-textSec hover:bg-app-bg hover:text-app-goldDark'
                 }
               `}
@@ -92,7 +96,7 @@ const AdminLayout: React.FC = () => {
         </nav>
 
         <div className="p-4 border-t border-app-card/30 flex flex-col gap-2">
-          <button 
+          <button
             onClick={handleClearCache}
             className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-app-textSec hover:bg-red-50 hover:text-red-500 transition-colors"
           >
@@ -102,8 +106,11 @@ const AdminLayout: React.FC = () => {
             </span>
           </button>
 
-          <button 
-            onClick={() => navigate('/')}
+          <button
+            onClick={() => {
+              onAdminLogout();
+              navigate('/admin/login');
+            }}
             className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-red-500 hover:bg-red-50 transition-colors"
           >
             <LogOut size={20} />
@@ -123,40 +130,40 @@ const AdminLayout: React.FC = () => {
               <Menu size={24} />
             </button>
             <h2 className="text-lg font-bold text-app-text">
-               {menuItems.find(i => i.path === location.pathname)?.label || 'لوحة التحكم'}
+              {menuItems.find(i => i.path === location.pathname)?.label || 'لوحة التحكم'}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
-              <input 
-                type="text" 
-                placeholder="بحث سريع..." 
+              <input
+                type="text"
+                placeholder="بحث سريع..."
                 className="bg-app-bg border border-app-card/50 rounded-full px-4 py-2 pr-10 text-sm focus:outline-none focus:border-app-gold w-64"
               />
               <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-app-textSec" />
             </div>
-            
+
             <button className="relative p-2 rounded-full hover:bg-app-bg text-app-textSec transition-colors">
               <Bell size={20} />
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
-            
+
             <div className="flex items-center gap-3 mr-2">
-               <div className="text-left hidden md:block">
-                 <p className="text-sm font-bold text-app-text">مدير النظام</p>
-                 <p className="text-[10px] text-app-textSec">Super Admin</p>
-               </div>
-               <div className="w-10 h-10 rounded-full bg-app-gold text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                 A
-               </div>
+              <div className="text-left hidden md:block">
+                <p className="text-sm font-bold text-app-text">مدير النظام</p>
+                <p className="text-[10px] text-app-textSec">Super Admin</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-app-gold text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                A
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
         <div className="flex-1 overflow-auto p-6 scroll-smooth">
-           <Outlet />
+          <Outlet />
         </div>
       </main>
     </div>

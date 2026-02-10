@@ -23,6 +23,7 @@ import { useAddToCart } from './components/requests/useAddToCart';
 
 // Admin Imports
 import AdminLayout from './components/admin/AdminLayout';
+import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminOrders from './components/admin/AdminOrders';
 import AdminProducts from './components/admin/AdminProducts';
@@ -52,7 +53,7 @@ export interface Order {
   items: CartItem[];
 }
 
-const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
+const AppContent: React.FC<{ onLogout: () => void; onAdminLogout: () => void }> = ({ onLogout, onAdminLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -347,8 +348,15 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
               }
             />
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
+            {/* Admin Login Route (Not Protected) */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+
+            {/* Protected Admin Routes */}
+            <Route path="/admin" element={
+              <ProtectedAdminRoute>
+                <AdminLayout onAdminLogout={onAdminLogout} />
+              </ProtectedAdminRoute>
+            }>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="widgets" element={<AdminWidgets />} />
@@ -401,12 +409,30 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   );
 };
 
+// Protected Admin Route Wrapper
+const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const adminToken = localStorage.getItem('admin_token');
+
+  if (!adminToken) {
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Check customer authentication
     const session = Cookies.get('token');
     if (session) setIsAuthenticated(true);
+
+    // Check admin authentication
+    const adminToken = localStorage.getItem('admin_token');
+    if (adminToken) setIsAdminAuthenticated(true);
   }, []);
 
   const handleLoginSuccess = () => {
@@ -422,12 +448,20 @@ const App: React.FC = () => {
     localStorage.removeItem('user');
   };
 
+  const handleAdminLogout = () => {
+    setIsAdminAuthenticated(false);
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_permissions');
+  };
+
   return (
     <DataProvider>
       <Router>
         <Toaster position="top-center" expand={false} richColors />
         {isAuthenticated ? (
-          <AppContent onLogout={handleLogout} />
+          <AppContent onLogout={handleLogout} onAdminLogout={handleAdminLogout} />
         ) : (
           <AuthScreen onLoginSuccess={handleLoginSuccess} />
         )}

@@ -33,7 +33,7 @@ const fetchProfile = async (lang) => {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/profile`, { headers });
+    const response = await axios.get(`${API_BASE_URL}/v1/profile`, { headers });
 
     // ✅ API returns unauthorized inside JSON
     if (response?.data?.statusCode === 401) {

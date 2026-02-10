@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import Cookies from 'js-cookie';
 export async function toggleFavourite(id, setLoading, lang) {
     setLoading(true)
-    const url = `${API_BASE_URL}/products/toggle-favorite/${id}`;
+    const url = `${API_BASE_URL}/v1/products/toggle-favorite/${id}`;
     const headers = { 'lang': lang }
     const token = Cookies.get("token");
     if (token) headers.Authorization = `Bearer ${token}`;

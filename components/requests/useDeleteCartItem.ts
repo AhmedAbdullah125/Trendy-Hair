@@ -24,7 +24,7 @@ export const useDeleteCartItem = () => {
             const formData = new FormData();
             if (clear_all) formData.append("clear_all", "true");
 
-            const res = await axios.delete(`${API_BASE_URL}/cart/items/${cartItemId}`, {
+            const res = await axios.delete(`${API_BASE_URL}/v1/cart/items/${cartItemId}`, {
                 headers,
                 data: formData,
             });

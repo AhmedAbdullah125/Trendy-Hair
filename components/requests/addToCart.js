@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import Cookies from 'js-cookie';
 export async function addToCart(id, quantity, setLoading, lang) {
     setLoading(true)
-    const url = `${API_BASE_URL}/cart/add-items`;
+    const url = `${API_BASE_URL}/v1/cart/add-items`;
     const headers = { 'lang': lang }
     const token = Cookies.get("token");
     if (token) headers.Authorization = `Bearer ${token}`;

@@ -11,7 +11,7 @@ const fetchProduct = async (lang, productId) => {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await axios.get(
-    `${API_BASE_URL}/products/${productId}`,
+    `${API_BASE_URL}/v1/products/${productId}`,
     { headers }
   );
 

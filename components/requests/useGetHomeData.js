@@ -12,7 +12,7 @@ const fetchHomeData = async (lang) => {
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await axios.post(`${API_BASE_URL}/home`, {}, { headers });
+  const response = await axios.post(`${API_BASE_URL}/v1/home`, {}, { headers });
   return response.data.items;
 };
 

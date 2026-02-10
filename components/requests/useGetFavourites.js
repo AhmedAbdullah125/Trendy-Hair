@@ -15,7 +15,7 @@ const fetchFavourites = async (lang, page) => {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await axios.post(
-    `${API_BASE_URL}/products/favorites`,
+    `${API_BASE_URL}/v1/products/favorites`,
     formData,
     { headers }
   );

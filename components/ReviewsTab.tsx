@@ -68,7 +68,7 @@ const ReviewsTab: React.FC = () => {
     if (!reviewsData?.products) return [];
     return reviewsData.products.map((review: any) => ({
       id: review.id,
-      videoUrl: `${API_BASE_URL}/${review.video}`,
+      videoUrl: `${API_BASE_URL}/v1/${review.video}`,
       customerName: review.title,
       thumbnailUrl: undefined, // API doesn't provide thumbnails
       isActive: true,

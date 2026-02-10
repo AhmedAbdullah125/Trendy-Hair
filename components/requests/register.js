@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 export async function registerRequest(data, setLoading, lang, router) {
     setLoading(true)
-    const url = `${API_BASE_URL}/register`;
+    const url = `${API_BASE_URL}/v1/register`;
     const formData = new FormData();
     formData.append('name', data.name);
     formData.append('phone', data.phone.split("+").join(""));

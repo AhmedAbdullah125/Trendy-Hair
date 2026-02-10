@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import Cookies from 'js-cookie';
 export async function updateProfile(data, setLoading, lang, router) {
     setLoading(true)
-    const url = `${API_BASE_URL}/update-profile`;
+    const url = `${API_BASE_URL}/v1/update-profile`;
     const formData = new FormData();
     if (data.phone) {
         formData.append('phone', data.phone);

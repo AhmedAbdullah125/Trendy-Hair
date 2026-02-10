@@ -48,7 +48,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         return apiCategories.map((cat: any) => ({
             id: String(cat.id),
             name: cat.name,
-            image: `${API_BASE_URL}/${cat.image}`,
+            image: `${API_BASE_URL}/v1/${cat.image}`,
             isActive: cat.is_active === 1,
             sortOrder: cat.position,
         }));
@@ -61,7 +61,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         return homeData.banners
             .filter((b: any) => b.is_active === 1)
             .sort((a: any, b: any) => a.position - b.position)
-            .map((b: any) => ({ id: b.id, image: `${API_BASE_URL}/${b.image}`, title: b.title, url: b.url }));
+            .map((b: any) => ({ id: b.id, image: `${API_BASE_URL}/v1/${b.image}`, title: b.title, url: b.url }));
     }, [homeData]);
 
     const brands = useMemo(() => {
@@ -69,7 +69,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         return homeData.brands
             .filter((b: any) => b.is_active === 1)
             .sort((a: any, b: any) => a.position - b.position)
-            .map((b: any) => ({ id: b.id, name: b.name, image: `${API_BASE_URL}/${b.image}` }));
+            .map((b: any) => ({ id: b.id, name: b.name, image: `${API_BASE_URL}/v1/${b.image}` }));
     }, [homeData]);
 
     const recentProducts = useMemo(() => (homeData?.products_recently ? mapApiProductsToComponent(homeData.products_recently) : []), [homeData]);

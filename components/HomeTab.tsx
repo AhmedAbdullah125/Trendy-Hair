@@ -96,7 +96,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     return apiCategories.map((cat: any) => ({
       id: cat.id,
       name: cat.name,
-      image: `${API_BASE_URL}/${cat.image}`,
+      image: `${API_BASE_URL}/v1/${cat.image}`,
       isActive: cat.is_active === 1,
       sortOrder: cat.position
     }));
@@ -110,7 +110,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
       .sort((a: any, b: any) => a.position - b.position)
       .map((banner: any) => ({
         id: banner.id,
-        image: `${API_BASE_URL}/${banner.image}`,
+        image: `${API_BASE_URL}/v1/${banner.image}`,
         title: banner.title,
         url: banner.url
       }));
@@ -125,7 +125,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
       .map((brand: any) => ({
         id: brand.id,
         name: brand.name,
-        image: `${API_BASE_URL}/${brand.image}`,
+        image: `${API_BASE_URL}/v1/${brand.image}`,
         isActive: brand.is_active === 1,
         sortOrder: brand.position
       }));
@@ -228,8 +228,6 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
       .filter(c => c.isActive)
       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }, [categories]);
-
-
 
   useEffect(() => {
     if (activeCategory || selectedProduct) return;

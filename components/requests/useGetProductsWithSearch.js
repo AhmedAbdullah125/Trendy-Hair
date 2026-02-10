@@ -23,7 +23,7 @@ const fetchProducts = async (lang, page, search = '', is_recently = false) => {
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await axios.post(`${API_BASE_URL}/products/index`, formData, { headers });
+  const response = await axios.post(`${API_BASE_URL}/v1/products/index`, formData, { headers });
   return response.data.items;
 };
 
