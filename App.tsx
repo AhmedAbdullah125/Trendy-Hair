@@ -10,35 +10,17 @@ import ReviewsTab from './components/ReviewsTab';
 import HomeTab from './components/home/HomeTab';
 import AllProductsPage from './components/AllProductsPage';
 import BrandPage from './components/BrandPage';
-// import CartFlow from './components/CartFlow';
 import AuthScreen from './components/AuthScreen';
 import { TabId, Product } from './types';
 import { Check } from 'lucide-react';
 import { STORAGE_KEYS, POINTS_EARNED_PER_KD } from './constants';
 import Cookies from 'js-cookie';
+import CartFlow from './components/cart/CartFlow';
 
 // ✅ API hooks
 import { useGetCart } from './components/requests/useGetCart';
 import { useAddToCart } from './components/requests/useAddToCart';
 
-// Admin Imports
-import AdminLayout from './components/admin/AdminLayout';
-import AdminLogin from './components/admin/AdminLogin';
-import AdminDashboard from './components/admin/AdminDashboard';
-import AdminOrders from './components/admin/AdminOrders';
-import AdminProducts from './components/admin/AdminProducts';
-import AdminBrands from './components/admin/AdminBrands';
-import AdminWallets from './components/admin/AdminWallets';
-import AdminGame from './components/admin/AdminGame';
-import AdminContent from './components/admin/AdminContent';
-import AdminWidgets from './components/admin/AdminWidgets';
-import AdminCategories from './components/admin/AdminCategories';
-import AdminReviews from './components/admin/AdminReviews';
-import CartFlow from './components/cart/CartFlow';
-
-const AdminPlaceholder = ({ title }: { title: string }) => (
-  <div className="p-10 text-center text-app-textSec font-bold text-xl">صفحة {title} قيد التطوير</div>
-);
 export interface CartItem {
   id: number; // ✅ cart item id from API (it.id)
   product: Product;
@@ -53,7 +35,7 @@ export interface Order {
   items: CartItem[];
 }
 
-const AppContent: React.FC<{ onLogout: () => void; onAdminLogout: () => void }> = ({ onLogout, onAdminLogout }) => {
+const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -87,9 +69,6 @@ const AppContent: React.FC<{ onLogout: () => void; onAdminLogout: () => void }> 
     if (path.startsWith('/account')) return 'account';
     return 'home';
   }, [location.pathname]);
-
-  // Check if we are in admin mode to hide customer UI elements
-  const isAdmin = location.pathname.startsWith('/admin');
 
   // Load state from storage
   useEffect(() => {
@@ -241,7 +220,7 @@ const AppContent: React.FC<{ onLogout: () => void; onAdminLogout: () => void }> 
     setIsCartOpen(false);
   };
 
-  if (isCartOpen && !isAdmin) {
+  if (isCartOpen) {
     return (
       <div className="w-full bg-[#F7F4EE] min-h-screen relative shadow-2xl flex flex-col overflow-hidden">
         {cartLoading ? (
@@ -267,8 +246,8 @@ const AppContent: React.FC<{ onLogout: () => void; onAdminLogout: () => void }> 
   }
 
   return (
-    <div className={isAdmin ? "w-full min-h-screen" : "min-h-screen bg-gray-100 flex justify-center font-sans"}>
-      <div className={isAdmin ? "w-full h-full" : "w-full bg-[#F7F4EE] min-h-screen relative shadow-2xl flex flex-col overflow-hidden"}>
+    <div className="min-h-screen bg-gray-100 flex justify-center font-sans">
+      <div className="w-full bg-[#F7F4EE] min-h-screen relative shadow-2xl flex flex-col overflow-hidden">
         <main className="flex-1 w-full relative h-full">
           <Routes>
             {/* Customer Routes */}
@@ -348,37 +327,13 @@ const AppContent: React.FC<{ onLogout: () => void; onAdminLogout: () => void }> 
               }
             />
 
-            {/* Admin Login Route (Not Protected) */}
-            <Route path="/admin/login" element={<AdminLogin />} />
 
-            {/* Protected Admin Routes */}
-            <Route path="/admin" element={
-              <ProtectedAdminRoute>
-                <AdminLayout onAdminLogout={onAdminLogout} />
-              </ProtectedAdminRoute>
-            }>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="widgets" element={<AdminWidgets />} />
-              <Route path="categories" element={<AdminCategories />} />
-              <Route path="reviews" element={<AdminReviews />} />
-              <Route path="orders" element={<AdminOrders />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="brands" element={<AdminBrands />} />
-              <Route path="wallets" element={<AdminWallets />} />
-              <Route path="game" element={<AdminGame />} />
-              <Route path="content" element={<AdminContent />} />
-              <Route path="customers" element={<AdminPlaceholder title="العملاء" />} />
-              <Route path="reports" element={<AdminPlaceholder title="التقارير" />} />
-              <Route path="users" element={<AdminPlaceholder title="الصلاحيات" />} />
-              <Route path="settings" element={<AdminPlaceholder title="الإعدادات" />} />
-            </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
 
-        {!isAdmin && (
+        {(
           <>
             {showToast && (
               <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-[380px] bg-app-gold text-white py-3 px-5 rounded-2xl shadow-xl flex items-center justify-between z-[100] animate-slideUp transition-all font-alexandria">
@@ -409,30 +364,13 @@ const AppContent: React.FC<{ onLogout: () => void; onAdminLogout: () => void }> 
   );
 };
 
-// Protected Admin Route Wrapper
-const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
-  const adminToken = localStorage.getItem('admin_token');
-
-  if (!adminToken) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
-  }
-
-  return <>{children}</>;
-};
-
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
     // Check customer authentication
     const session = Cookies.get('token');
     if (session) setIsAuthenticated(true);
-
-    // Check admin authentication
-    const adminToken = localStorage.getItem('admin_token');
-    if (adminToken) setIsAdminAuthenticated(true);
   }, []);
 
   const handleLoginSuccess = () => {
@@ -448,20 +386,12 @@ const App: React.FC = () => {
     localStorage.removeItem('user');
   };
 
-  const handleAdminLogout = () => {
-    setIsAdminAuthenticated(false);
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_refresh_token');
-    localStorage.removeItem('admin_user');
-    localStorage.removeItem('admin_permissions');
-  };
-
   return (
     <DataProvider>
       <Router>
         <Toaster position="top-center" expand={false} richColors />
         {isAuthenticated ? (
-          <AppContent onLogout={handleLogout} onAdminLogout={handleAdminLogout} />
+          <AppContent onLogout={handleLogout} />
         ) : (
           <AuthScreen onLoginSuccess={handleLoginSuccess} />
         )}
