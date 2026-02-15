@@ -6,6 +6,7 @@ import CartStep from "./CartStep";
 import DetailsStep from "./DetailsStep";
 import SuccessStep from "./SuccessStep";
 import type { AddressForm, CheckoutStep } from "./types";
+import { createOrder } from "../requests/useCreateOrder";
 
 interface CartFlowProps {
     cartItems: CartItem[];
@@ -157,31 +158,41 @@ const CartFlow: React.FC<CartFlowProps> = ({
             return;
         }
 
-        setIsProcessing(true);
+        // setIsProcessing(true);
 
-        setTimeout(() => {
-            const orderId = `TH-${Math.floor(100000 + Math.random() * 900000)}`;
-            const newOrder: Order = {
-                id: orderId,
-                date: new Date().toLocaleDateString("en-GB"),
-                status: "قيد المعالجة",
-                total: `${finalTotal.toFixed(3)} د.ك`,
-                items: [...cartItems],
-            };
+        // setTimeout(() => {
+        //     const orderId = `TH-${Math.floor(100000 + Math.random() * 900000)}`;
+        //     const newOrder: Order = {
+        //         id: orderId,
+        //         date: new Date().toLocaleDateString("en-GB"),
+        //         status: "قيد المعالجة",
+        //         total: `${finalTotal.toFixed(3)} د.ك`,
+        //         items: [...cartItems],
+        //     };
 
-            const pointsToDeduct = useLoyaltyPoints
-                ? Math.ceil(finalLoyaltyDeduction / LOYALTY_POINT_VALUE_KD)
-                : 0;
+        //     const pointsToDeduct = useLoyaltyPoints
+        //         ? Math.ceil(finalLoyaltyDeduction / LOYALTY_POINT_VALUE_KD)
+        //         : 0;
 
-            onDeductWallets(finalGameDeduction, pointsToDeduct);
+        //     onDeductWallets(finalGameDeduction, pointsToDeduct);
 
-            setLastOrderId(orderId);
-            onAddOrder(newOrder, finalTotal);
+        //     setLastOrderId(orderId);
+        //     onAddOrder(newOrder, finalTotal);
 
-            setIsProcessing(false);
-            onClearCart?.();
-            setStep("success");
-        }, 2000);
+        //     setIsProcessing(false);
+        //     onClearCart?.();
+        //     setStep("success");
+        // }, 2000);
+
+        const formData = new FormData();
+        formData.append("use_wallet", "0");
+        formData.append("governorate_id", addressForm.governorate);
+        formData.append("city_id", addressForm.area);
+        formData.append("address", addressForm.details);
+        formData.append("phone", addressForm.phone);
+        formData.append("payment_type", paymentMethod);
+        formData.append("notes", "");
+        createOrder(formData, lang);
     };
 
     if (step === "details") {

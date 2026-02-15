@@ -3,7 +3,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
 
-export const createOrder = async (orderData, lang = 'ar') => {
+export const createOrder = async (formData, lang = 'ar') => {
     const token = Cookies.get("token") || localStorage.getItem("token");
 
     const headers = {
@@ -12,11 +12,6 @@ export const createOrder = async (orderData, lang = 'ar') => {
     };
 
     if (token) headers.Authorization = `Bearer ${token}`;
-
-    const formData = new FormData();
-    Object.keys(orderData).forEach(key => {
-        formData.append(key, orderData[key]);
-    });
 
     try {
         const response = await axios.post(`${API_BASE_URL}/v1/order`, formData, { headers });

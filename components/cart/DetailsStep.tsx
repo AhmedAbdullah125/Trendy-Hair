@@ -4,6 +4,7 @@ import { useGetProfile } from "../requests/useGetProfile";
 
 import { KUWAIT_REGIONS } from "./kuwaitRegions";
 import type { AddressForm } from "./types";
+import { createOrder } from "../requests/useCreateOrder";
 
 type Props = {
     addressForm: AddressForm;
@@ -75,6 +76,8 @@ const DetailsStep: React.FC<Props> = ({
     const handleGovernorateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         onChangeAddress({ governorate: e.target.value, area: "" });
     };
+    console.log(addressForm);
+
 
     return (
         <div className="flex flex-col h-full animate-fadeIn bg-app-bg">
@@ -111,7 +114,7 @@ const DetailsStep: React.FC<Props> = ({
                                     المحافظة
                                 </option>
                                 {KUWAIT_REGIONS.map((gov) => (
-                                    <option key={gov.id} value={gov.name}>
+                                    <option key={gov.id} value={gov.id}>
                                         {gov.name}
                                     </option>
                                 ))}
@@ -134,8 +137,8 @@ const DetailsStep: React.FC<Props> = ({
                                     المنطقة
                                 </option>
                                 {addressForm.governorate &&
-                                    KUWAIT_REGIONS.find(g => g.name === addressForm.governorate)?.areas.map((area) => (
-                                        <option key={area.id} value={area.name}>
+                                    KUWAIT_REGIONS.find(g => g.id === Number(addressForm.governorate))?.areas.map((area) => (
+                                        <option key={area.id} value={area.id}>
                                             {area.name}
                                         </option>
                                     ))}
