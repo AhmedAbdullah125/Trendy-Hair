@@ -1,5 +1,7 @@
 import React from "react";
 import { ArrowRight, Banknote, CheckCircle2, ChevronDown, CreditCard, Package, Wallet } from "lucide-react";
+import { useGetProfile } from "../requests/useGetProfile";
+
 import { KUWAIT_REGIONS } from "./kuwaitRegions";
 import type { AddressForm } from "./types";
 
@@ -61,6 +63,15 @@ const DetailsStep: React.FC<Props> = ({
     isProcessing,
     onPay,
 }) => {
+    const { data: profileData, isLoading: profileLoading } = useGetProfile('ar');
+
+    // Pre-fill name from profile
+    React.useEffect(() => {
+        if (profileData?.name && !addressForm.name) {
+            onChangeAddress({ name: profileData.name });
+        }
+    }, [profileData, addressForm.name, onChangeAddress]);
+
     const handleGovernorateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         onChangeAddress({ governorate: e.target.value, area: "" });
     };
@@ -85,7 +96,9 @@ const DetailsStep: React.FC<Props> = ({
                     <div className="space-y-4">
                         <div className="w-full p-4 rounded-2xl border border-app-card bg-app-card/20 text-sm flex flex-col gap-1">
                             <span className="text-[10px] text-app-textSec font-bold">الاسم الكامل</span>
-                            <span className="text-app-text font-bold">{addressForm.name}</span>
+                            <span className="text-app-text font-bold">
+                                {profileLoading ? "..." : (profileData?.name || addressForm.name || "ضيف")}
+                            </span>
                         </div>
 
                         <div className="relative">
@@ -97,9 +110,9 @@ const DetailsStep: React.FC<Props> = ({
                                 <option value="" disabled>
                                     المحافظة
                                 </option>
-                                {Object.keys(KUWAIT_REGIONS).map((gov) => (
-                                    <option key={gov} value={gov}>
-                                        {gov}
+                                {KUWAIT_REGIONS.map((gov) => (
+                                    <option key={gov.id} value={gov.name}>
+                                        {gov.name}
                                     </option>
                                 ))}
                             </select>
@@ -121,9 +134,9 @@ const DetailsStep: React.FC<Props> = ({
                                     المنطقة
                                 </option>
                                 {addressForm.governorate &&
-                                    KUWAIT_REGIONS[addressForm.governorate].map((area) => (
-                                        <option key={area} value={area}>
-                                            {area}
+                                    KUWAIT_REGIONS.find(g => g.name === addressForm.governorate)?.areas.map((area) => (
+                                        <option key={area.id} value={area.name}>
+                                            {area.name}
                                         </option>
                                     ))}
                             </select>
