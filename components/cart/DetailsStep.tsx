@@ -1,10 +1,10 @@
 import React from "react";
 import { ArrowRight, Banknote, CheckCircle2, ChevronDown, CreditCard, Package, Wallet } from "lucide-react";
 import { useGetProfile } from "../requests/useGetProfile";
+import { useGetGovernorates } from "../requests/useGetGovernorates";
+import { useGetCities } from "../requests/useGetCities";
 
-import { KUWAIT_REGIONS } from "./kuwaitRegions";
 import type { AddressForm } from "./types";
-import { createOrder } from "../requests/useCreateOrder";
 
 type Props = {
     addressForm: AddressForm;
@@ -33,8 +33,8 @@ type Props = {
     subtotal: number;
     deliveryFee: number;
 
-    paymentMethod: "online" | "cod";
-    setPaymentMethod: (v: "online" | "cod") => void;
+    paymentMethod: "online" | "cash";
+    setPaymentMethod: (v: "online" | "cash") => void;
 
     isProcessing: boolean;
     onPay: () => void;
@@ -65,6 +65,8 @@ const DetailsStep: React.FC<Props> = ({
     onPay,
 }) => {
     const { data: profileData, isLoading: profileLoading } = useGetProfile('ar');
+    const { data: governoratesData, isLoading: governoratesLoading } = useGetGovernorates('ar');
+    const { data: citiesData, isLoading: citiesLoading } = useGetCities('ar', addressForm.governorate);
 
     // Pre-fill name from profile
     React.useEffect(() => {
@@ -109,11 +111,12 @@ const DetailsStep: React.FC<Props> = ({
                                 className="w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none"
                                 value={addressForm.governorate}
                                 onChange={handleGovernorateChange}
+                                disabled={governoratesLoading}
                             >
                                 <option value="" disabled>
-                                    المحافظة
+                                    {governoratesLoading ? "جاري التحميل..." : "المحافظة"}
                                 </option>
-                                {KUWAIT_REGIONS.map((gov) => (
+                                {governoratesData?.governorates?.filter(gov => gov.is_active === 1).map((gov) => (
                                     <option key={gov.id} value={gov.id}>
                                         {gov.name}
                                     </option>
@@ -127,21 +130,20 @@ const DetailsStep: React.FC<Props> = ({
 
                         <div className="relative">
                             <select
-                                className={`w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none ${!addressForm.governorate ? "opacity-50 cursor-not-allowed" : ""
+                                className={`w-full p-4 pr-10 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm appearance-none ${!addressForm.governorate || citiesLoading ? "opacity-50 cursor-not-allowed" : ""
                                     }`}
                                 value={addressForm.area}
                                 onChange={(e) => onChangeAddress({ area: e.target.value })}
-                                disabled={!addressForm.governorate}
+                                disabled={!addressForm.governorate || citiesLoading}
                             >
                                 <option value="" disabled>
-                                    المنطقة
+                                    {citiesLoading ? "جاري التحميل..." : "المنطقة"}
                                 </option>
-                                {addressForm.governorate &&
-                                    KUWAIT_REGIONS.find(g => g.id === Number(addressForm.governorate))?.areas.map((area) => (
-                                        <option key={area.id} value={area.id}>
-                                            {area.name}
-                                        </option>
-                                    ))}
+                                {citiesData?.cities?.filter(city => city.is_active === 1).map((city) => (
+                                    <option key={city.id} value={city.id}>
+                                        {city.name}
+                                    </option>
+                                ))}
                             </select>
                             <ChevronDown
                                 className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec pointer-events-none"
@@ -284,17 +286,17 @@ const DetailsStep: React.FC<Props> = ({
                         </button>
 
                         <button
-                            onClick={() => setPaymentMethod("cod")}
-                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "cod" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                            onClick={() => setPaymentMethod("cash")}
+                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "cash" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
                                 }`}
                         >
                             <div className="flex items-center gap-3">
-                                <Banknote className={paymentMethod === "cod" ? "text-app-gold" : "text-app-textSec"} />
-                                <span className={`text-sm font-bold ${paymentMethod === "cod" ? "text-app-text" : "text-app-textSec"}`}>
+                                <Banknote className={paymentMethod === "cash" ? "text-app-gold" : "text-app-textSec"} />
+                                <span className={`text-sm font-bold ${paymentMethod === "cash" ? "text-app-text" : "text-app-textSec"}`}>
                                     دفع عند الاستلام
                                 </span>
                             </div>
-                            <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === "cod" ? "border-app-gold bg-app-gold" : "border-app-card"}`} />
+                            <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === "cash" ? "border-app-gold bg-app-gold" : "border-app-card"}`} />
                         </button>
                     </div>
                 </section>

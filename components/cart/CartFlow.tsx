@@ -7,6 +7,7 @@ import DetailsStep from "./DetailsStep";
 import SuccessStep from "./SuccessStep";
 import type { AddressForm, CheckoutStep } from "./types";
 import { createOrder } from "../requests/useCreateOrder";
+import { useNavigate } from "react-router-dom";
 
 interface CartFlowProps {
     cartItems: CartItem[];
@@ -42,7 +43,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
 }) => {
     const [step, setStep] = useState<CheckoutStep>("cart");
     const [isProcessing, setIsProcessing] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
+    const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("online");
 
     // Wallet Usage State
     const [useGameBalance, setUseGameBalance] = useState(false);
@@ -151,7 +152,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
             }
         );
     };
-
+    const navigate = useNavigate();
     const handlePay = () => {
         if (!addressForm.governorate || !addressForm.area || !addressForm.details) {
             alert("يرجى إكمال جميع بيانات العنوان");
@@ -192,7 +193,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
         formData.append("phone", addressForm.phone);
         formData.append("payment_type", paymentMethod);
         formData.append("notes", "");
-        createOrder(formData, lang);
+        createOrder(formData, lang, setStep, setIsProcessing);
     };
 
     if (step === "details") {

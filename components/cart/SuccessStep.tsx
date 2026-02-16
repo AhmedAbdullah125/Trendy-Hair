@@ -18,12 +18,6 @@ const SuccessStep: React.FC<Props> = ({ lastOrderId, onClose, onViewOrderDetails
             <p className="text-app-textSec mb-6 leading-relaxed">
                 تم استلام طلبك بنجاح، وسيتم التواصل معك لتأكيد التفاصيل.
             </p>
-
-            <div className="bg-app-bg px-6 py-3 rounded-2xl mb-10">
-                <span className="text-app-textSec text-xs font-bold block mb-1">رقم الطلب</span>
-                <span className="text-app-gold font-bold text-lg">#{lastOrderId}</span>
-            </div>
-
             <div className="w-full space-y-3">
                 <button
                     onClick={onClose}
