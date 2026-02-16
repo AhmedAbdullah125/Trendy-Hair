@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { CartItem, Order } from "../../App";
 import { LOYALTY_POINT_VALUE_KD, GAME_REDEMPTION_CAP_KD } from "../../constants";
 import { useDeleteCartItem } from "../requests/useDeleteCartItem";
+import { useGetCities } from "../requests/useGetCities";
 import CartStep from "./CartStep";
 import DetailsStep from "./DetailsStep";
 import SuccessStep from "./SuccessStep";
 import type { AddressForm, CheckoutStep } from "./types";
 import { createOrder } from "../requests/useCreateOrder";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface CartFlowProps {
     cartItems: CartItem[];
@@ -61,6 +63,9 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
     const delMut = useDeleteCartItem();
 
+    // Fetch cities data to get delivery costs
+    const { data: citiesData } = useGetCities(lang, addressForm.governorate);
+
     // ✅ subtotal
     const subtotal = useMemo(() => {
         return cartItems.reduce((sum, item) => {
@@ -71,14 +76,29 @@ const CartFlow: React.FC<CartFlowProps> = ({
         }, 0);
     }, [cartItems]);
 
-    const deliveryFee = 2.0;
+    // ✅ Dynamic delivery fee based on selected city
+    const deliveryFee = useMemo(() => {
+        if (!addressForm.area || !citiesData?.cities) {
+            return 2.0; // Default fallback
+        }
+
+        const selectedCity = citiesData.cities.find(
+            (city) => String(city.id) === String(addressForm.area)
+        );
+
+        if (selectedCity?.delivery_cost) {
+            return parseFloat(selectedCity.delivery_cost);
+        }
+
+        return 2.0; // Fallback if city not found
+    }, [addressForm.area, citiesData]);
 
     const maxGameRedemption = useMemo(() => Math.min(gameBalance, GAME_REDEMPTION_CAP_KD), [gameBalance]);
 
     const maxLoyaltyRedemptionValue = useMemo(() => {
         const pointsValue = loyaltyPoints * LOYALTY_POINT_VALUE_KD;
         return Math.min(pointsValue, subtotal + deliveryFee);
-    }, [loyaltyPoints, subtotal]);
+    }, [loyaltyPoints, subtotal, deliveryFee]);
 
     const { finalGameDeduction, finalLoyaltyDeduction, finalTotal } = useMemo(() => {
         let toPay = subtotal + deliveryFee;
@@ -155,7 +175,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
     const navigate = useNavigate();
     const handlePay = () => {
         if (!addressForm.governorate || !addressForm.area || !addressForm.details) {
-            alert("يرجى إكمال جميع بيانات العنوان");
+            toast.error("يرجى إكمال جميع بيانات العنوان");
             return;
         }
 

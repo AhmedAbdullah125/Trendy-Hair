@@ -56,6 +56,11 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
             setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
         }
     };
+    // Helper function to clean escaped slashes from image URLs
+    const cleanImageUrl = (url: string) => {
+        return url?.replace(/\\\//g, '/') || '';
+    };
+
 
     if (!hasBanners) return null;
 
@@ -75,7 +80,7 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
                     {banners.map((b) => (
                         <div key={b.id} className="min-w-full h-full flex items-center justify-center">
                             <img
-                                src={b.image}
+                                src={cleanImageUrl(b.image)}
                                 alt={b.title || ""}
                                 className="w-full h-full object-cover object-center block"
                                 draggable={false}

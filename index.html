@@ -1,121 +1,169 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-    <title>Trandy Hair</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-S+8Kq7G0nqQGkq4p5f5Xo4d+4tJ9I+fY5eXMjzv0G1V6vTQq5zGZy0c3J7+q6mVk7w0O6jx0QkQbqQGdZ8Yxw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-      /* Global scrollbar hiding */
-      html, body {
-        margin: 0;
-        padding: 0;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+
+  <!-- Primary Meta Tags -->
+  <title>Trandy Hair</title>
+  <meta name="title" content="Trandy Hair" />
+  <meta name="description" content="Your trusted destination for premium hair care products and beauty essentials" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://trandyhairapp.com/" />
+  <meta property="og:title" content="Trandy Hair" />
+  <meta property="og:description"
+    content="Your trusted destination for premium hair care products and beauty essentials" />
+  <meta property="og:image" content="https://trandyhair.com/cdn/shop/files/nour_logo.png?v=1754468080&width=240" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://trandyhairapp.com/" />
+  <meta property="twitter:title" content="Trandy Hair" />
+  <meta property="twitter:description"
+    content="Your trusted destination for premium hair care products and beauty essentials" />
+  <meta property="twitter:image" content="https://trandyhair.com/cdn/shop/files/nour_logo.png?v=1754468080&width=240" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    integrity="sha512-S+8Kq7G0nqQGkq4p5f5Xo4d+4tJ9I+fY5eXMjzv0G1V6vTQq5zGZy0c3J7+q6mVk7w0O6jx0QkQbqQGdZ8Yxw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    /* Global scrollbar hiding */
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Main app wrapper and any element using no-scrollbar class */
+    html,
+    body,
+    #root,
+    .no-scrollbar,
+    * {
+      scrollbar-width: none;
+      /* Firefox */
+      -ms-overflow-style: none;
+      /* IE / Edge legacy */
+    }
+
+    /* Hide WebKit scrollbars (iOS Safari / WebView / Chrome) */
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    #root::-webkit-scrollbar,
+    .no-scrollbar::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
+    }
+
+    /* Hide default video controls for Review overlay (WebKit/iOS) */
+    .no-controls::-webkit-media-controls {
+      display: none !important;
+    }
+
+    .no-controls::-webkit-media-controls-enclosure {
+      display: none !important;
+    }
+
+    body {
+      font-family: 'Alexandria', sans-serif;
+      background-color: #f3f4f6;
+      /* Neutral gray for desktop background */
+      color: #1F1F1F;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes slideLeftRtl {
+      from {
+        transform: translateX(100%);
       }
 
-      /* Main app wrapper and any element using no-scrollbar class */
-      html,
-      body,
-      #root,
-      .no-scrollbar,
-      * {
-        scrollbar-width: none;        /* Firefox */
-        -ms-overflow-style: none;     /* IE / Edge legacy */
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    .animate-slideLeftRtl {
+      animation: slideLeftRtl 0.3s ease-out forwards;
+    }
+
+    @keyframes scaleIn {
+      from {
+        transform: scale(0.95);
+        opacity: 0;
       }
 
-      /* Hide WebKit scrollbars (iOS Safari / WebView / Chrome) */
-      html::-webkit-scrollbar,
-      body::-webkit-scrollbar,
-      #root::-webkit-scrollbar,
-      .no-scrollbar::-webkit-scrollbar,
-      *::-webkit-scrollbar {
-        width: 0;
-        height: 0;
-        display: none;
+      to {
+        transform: scale(1);
+        opacity: 1;
       }
+    }
 
-      /* Hide default video controls for Review overlay (WebKit/iOS) */
-      .no-controls::-webkit-media-controls {
-        display: none !important;
-      }
-      .no-controls::-webkit-media-controls-enclosure {
-        display: none !important;
-      }
+    .animate-scaleIn {
+      animation: scaleIn 0.2s ease-out forwards;
+    }
 
-      body {
-        font-family: 'Alexandria', sans-serif;
-        background-color: #f3f4f6; /* Neutral gray for desktop background */
-        color: #1F1F1F;
-        -webkit-tap-highlight-color: transparent;
-      }
+    /* --- Form Control Styling Overrides (Force Light Mode) --- */
+    /* This ensures inputs remain legible regardless of system dark mode settings */
+    input,
+    select,
+    textarea {
+      background-color: #FFFFFF;
+      /* Default to white */
+      color: #1F1F1F;
+      /* Dark text */
+      color-scheme: light;
+      /* Force native browser UI to light mode */
+    }
 
-      @keyframes slideLeftRtl {
-        from { transform: translateX(100%); }
-        to { transform: translateX(0); }
-      }
-      .animate-slideLeftRtl {
-        animation: slideLeftRtl 0.3s ease-out forwards;
-      }
-      @keyframes scaleIn {
-        from { transform: scale(0.95); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-      }
-      .animate-scaleIn {
-        animation: scaleIn 0.2s ease-out forwards;
-      }
+    /* Specific placeholder styling */
+    input::placeholder,
+    textarea::placeholder,
+    select::placeholder {
+      color: #7A7A7A;
+      /* Matches textSec */
+      opacity: 0.6;
+    }
 
-      /* --- Form Control Styling Overrides (Force Light Mode) --- */
-      /* This ensures inputs remain legible regardless of system dark mode settings */
-      input, 
-      select, 
-      textarea {
-        background-color: #FFFFFF; /* Default to white */
-        color: #1F1F1F;            /* Dark text */
-        color-scheme: light;       /* Force native browser UI to light mode */
-      }
-
-      /* Specific placeholder styling */
-      input::placeholder,
-      textarea::placeholder,
-      select::placeholder {
-        color: #7A7A7A; /* Matches textSec */
-        opacity: 0.6;
-      }
-
-      /* Force option elements to be light as well (for dropdowns) */
-      option {
-        background-color: #FFFFFF;
-        color: #1F1F1F;
-      }
-    </style>
-    <script>
-      tailwind.config = {
-        darkMode: 'class', // Disable automatic media-query based dark mode for Tailwind utilities
-        theme: {
-          extend: {
-            colors: {
-              app: {
-                bg: '#F7F4EE',
-                card: '#EBE5DA',
-                gold: '#B1996C',
-                goldDark: '#A88A59',
-                text: '#1F1F1F',
-                textSec: '#7A7A7A',
-              }
-            },
-            fontFamily: {
-              sans: ['Alexandria', 'sans-serif'],
-              alexandria: ['Alexandria', 'sans-serif'],
+    /* Force option elements to be light as well (for dropdowns) */
+    option {
+      background-color: #FFFFFF;
+      color: #1F1F1F;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class', // Disable automatic media-query based dark mode for Tailwind utilities
+      theme: {
+        extend: {
+          colors: {
+            app: {
+              bg: '#F7F4EE',
+              card: '#EBE5DA',
+              gold: '#B1996C',
+              goldDark: '#A88A59',
+              text: '#1F1F1F',
+              textSec: '#7A7A7A',
             }
+          },
+          fontFamily: {
+            sans: ['Alexandria', 'sans-serif'],
+            alexandria: ['Alexandria', 'sans-serif'],
           }
         }
       }
-    </script>
+    }
+  </script>
   <script type="importmap">
 {
   "imports": {
@@ -131,10 +179,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
