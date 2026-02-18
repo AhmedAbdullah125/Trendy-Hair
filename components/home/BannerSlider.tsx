@@ -56,9 +56,20 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
             setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
         }
     };
-    // Helper function to clean escaped slashes from image URLs
+    // Helper function to clean escaped slashes and duplicated base URLs from image URLs
     const cleanImageUrl = (url: string) => {
-        return url?.replace(/\\\//g, '/') || '';
+        if (!url) return '';
+        // First, replace escaped slashes
+        let cleanedUrl = url.replace(/\\\//g, '/');
+        // Remove duplicated base URL pattern (e.g., https://trandyhairapp.com/api/v1/https://trandyhairapp.com/...)
+        // Extract the last occurrence of https://trandyhairapp.com
+        const matches = cleanedUrl.match(/https:\/\/trandyhairapp\.com/g);
+        if (matches && matches.length > 1) {
+            // Find the last occurrence and keep everything from there
+            const lastIndex = cleanedUrl.lastIndexOf('https://trandyhairapp.com');
+            cleanedUrl = cleanedUrl.substring(lastIndex);
+        }
+        return cleanedUrl;
     };
 
 
