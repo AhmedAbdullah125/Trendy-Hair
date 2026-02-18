@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Heart, Info, Mail, Phone, ChevronLeft, XCircle, Instagram, Ghost, Music2, ShoppingBag, Wallet, Award, Gamepad2, User, Edit2,
-    PackageCheck
+    PackageCheck, X
 } from 'lucide-react';
 
 interface AccountMenuProps {
@@ -27,6 +27,8 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
     navigate,
     onOpenCart
 }) => {
+    const [showAbout, setShowAbout] = useState(false);
+
     return (
         <div className="animate-fadeIn">
             <div className="text-center mb-8">
@@ -159,7 +161,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 </div>
 
                 {/* About */}
-                <div className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer">
+                <div onClick={() => setShowAbout(true)} className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer">
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
                             <Info size={22} />
@@ -170,7 +172,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 </div>
 
                 {/* Email */}
-                <div className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer">
+                <a href="mailto:Trendhair@info.com" className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer">
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
                             <Mail size={22} />
@@ -178,10 +180,10 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                         <span className="text-sm font-bold text-app-text">Trendhair@info.com</span>
                     </div>
                     <ChevronLeft className="text-app-textSec opacity-40" size={20} />
-                </div>
+                </a>
 
                 {/* Phone */}
-                <div className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer">
+                <a href="tel:96554647655" className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer">
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
                             <Phone size={22} />
@@ -189,7 +191,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                         <span className="text-sm font-bold text-app-text" dir="ltr">96554647655</span>
                     </div>
                     <ChevronLeft className="text-app-textSec opacity-40" size={20} />
-                </div>
+                </a>
             </div>
 
             {/* Social Icons */}
@@ -204,6 +206,46 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                     <Ghost size={26} fill="currentColor" />
                 </button>
             </div>
+
+            {/* About Modal */}
+            {showAbout && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                    onClick={() => setShowAbout(false)}
+                >
+                    <div
+                        className="w-full max-w-lg bg-white rounded-[2.5rem] p-8 pb-12 shadow-2xl font-alexandria max-h-[80vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
+                                    <Info size={22} />
+                                </div>
+                                <h2 className="text-lg font-bold text-app-text">عن Trandy Hair</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowAbout(false)}
+                                className="p-2 rounded-full bg-app-bg text-app-textSec hover:bg-app-card transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 text-right">
+                            <p className="text-sm text-app-textSec leading-relaxed">
+                                Trandy Hair هي وجهتك الأولى لمنتجات العناية بالشعر عالية الجودة في الكويت. نقدم لكِ أفضل الماركات العالمية والمحلية بأسعار تنافسية.
+                            </p>
+                            <p className="text-sm text-app-textSec leading-relaxed">
+                                نؤمن بأن كل امرأة تستحق شعراً صحياً ولامعاً، لذلك نحرص على توفير منتجات مختارة بعناية تناسب جميع أنواع الشعر.
+                            </p>
+                            <p className="text-sm text-app-textSec leading-relaxed">
+                                تسوقي بثقة مع ضمان الجودة وخدمة توصيل سريعة لجميع مناطق الكويت.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
