@@ -211,7 +211,7 @@ const ProductDetailsView: React.FC<Props> = ({
                 </div>
             </div>
 
-            <div className="px-8 mt-6 space-y-3 mb-10">
+            <div className="px-8 mt-6 mb-10 flex flex-col lg:flex-row gap-4 items-center">
                 <button
                     onClick={handleAddToCart}
                     disabled={!canAddToCart}

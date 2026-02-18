@@ -56,6 +56,7 @@ const ReviewsTab: React.FC = () => {
   // Fetch reviews from API
   const [page, setPage] = useState(1);
   const { data: reviewsData, isLoading, error } = useGetReviews('ar', page);
+  console.log(reviewsData);
 
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [activeReview, setActiveReview] = useState<Review | null>(null);
@@ -68,9 +69,9 @@ const ReviewsTab: React.FC = () => {
     if (!reviewsData?.products) return [];
     return reviewsData.products.map((review: any) => ({
       id: review.id,
-      videoUrl: `${API_BASE_URL}/v1/${review.video}`,
+      videoUrl: review.video,
       customerName: review.title,
-      thumbnailUrl: undefined, // API doesn't provide thumbnails
+      thumbnailUrl: review.image,
       isActive: true,
       sortOrder: review.id
     }));
@@ -97,7 +98,7 @@ const ReviewsTab: React.FC = () => {
       </div>
 
       {/* Video Grid */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {isLoading ? (
           <div className="col-span-2 text-center text-app-textSec py-10">
             جاري التحميل...

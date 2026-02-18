@@ -658,7 +658,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
               </button>
               <h2 className="text-lg font-bold text-app-text font-alexandria truncate">{activeCategory}</h2>
             </div>
-            <div className="px-6 grid grid-cols-2 gap-4">
+            <div className="px-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {categoryLoading ? (
                 <div className="col-span-2 text-center text-app-textSec py-10">
                   جاري التحميل...

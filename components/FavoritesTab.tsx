@@ -188,7 +188,7 @@ const FavoritesTab: React.FC<FavoritesTabProps> = ({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 pb-10">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 pb-10">
             {visibleFavorites.map((product) => (
               <ProductCard
                 key={product.id}

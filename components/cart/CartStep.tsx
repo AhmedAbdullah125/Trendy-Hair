@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import type { CartItem } from "../../App";
 
 type Props = {
@@ -43,7 +43,7 @@ const CartStep: React.FC<Props> = ({
                     )}
 
                     <button onClick={onClose} className="p-2 hover:bg-app-bg rounded-full text-app-text">
-                        <ArrowRight size={24} />
+                        <ArrowLeft size={24} />
                     </button>
                 </div>
             </header>

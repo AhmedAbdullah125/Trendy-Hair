@@ -12,6 +12,8 @@ export async function loginRequest(data, setLoading, lang, router) {
     formData.append('client_secret', "OF3II6JtC3DIrSk5mNVl0ZaPlkP1P8nI5wrf1tYX");
     formData.append('grant_type', "password");
     const headers = { 'lang': lang }
+    // clear token from cookies
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     try {
         const response = await axios.post(url, formData, { headers });
         const message = response?.data?.message;
