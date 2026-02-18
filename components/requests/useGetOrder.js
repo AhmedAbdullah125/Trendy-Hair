@@ -41,7 +41,7 @@ export const useGetOrder = (orderId, lang = 'ar') => {
         queryKey: ["order", orderId, lang],
         queryFn: () => fetchOrderById(orderId, lang),
         enabled: !!orderId && !!Cookies.get("token"),
-        staleTime: 1000 * 30, // 30 seconds
+        staleTime: 1000 * 10, // 10 seconds
         gcTime: 1000 * 60, // 1 minute
     });
 };

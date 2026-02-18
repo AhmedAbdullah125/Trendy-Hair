@@ -32,14 +32,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    if (!phone.startsWith('+')) {
-      setError('ادخل مفتاح الدول ورقم الهاتف');
-      return;
-    }
-
     const phoneDigits = phone.replace(/[^0-9]/g, '');
-    if (phoneDigits.length < 10) {
-      setError('رقم الهاتف يجب أن يكون 10 أرقام على الأقل');
+    if (phoneDigits.length < 8) {
+      setError('رقم الهاتف يجب أن يكون 8 أرقام على الأقل');
       return;
     }
 
@@ -77,16 +72,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    // Phone validation
-    if (!phone.startsWith('+')) {
-      setError('ادخل مفتاح الدول ورقم الهاتف');
-      return;
-    }
 
     // Check minimum length (10 digits excluding '+')
     const phoneDigits = phone.replace(/[^0-9]/g, '');
-    if (phoneDigits.length < 10) {
-      setError('رقم الهاتف يجب أن يكون 10 أرقام على الأقل');
+    if (phoneDigits.length < 8) {
+      setError('رقم الهاتف يجب أن يكون 8 أرقام على الأقل');
       return;
     }
 

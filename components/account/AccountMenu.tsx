@@ -188,7 +188,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
                             <Phone size={22} />
                         </div>
-                        <span className="text-sm font-bold text-app-text" dir="ltr">96554647655</span>
+                        <span className="text-sm font-bold text-app-text" dir="ltr">+96554647655</span>
                     </div>
                     <ChevronLeft className="text-app-textSec opacity-40" size={20} />
                 </a>
