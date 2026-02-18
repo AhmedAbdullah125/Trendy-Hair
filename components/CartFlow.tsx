@@ -11,6 +11,7 @@ import {
   Banknote,
   ChevronDown,
   Wallet,
+  ArrowLeft,
 } from "lucide-react";
 import { CartItem, Order } from "../App";
 import { LOYALTY_POINT_VALUE_KD, GAME_REDEMPTION_CAP_KD } from "../constants";
@@ -434,7 +435,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
       <header className="px-6 pt-6 pb-4 bg-white border-b border-app-card/30 flex items-center justify-between">
         <h1 className="text-xl font-bold text-app-text">بيانات الشحن والدفع</h1>
         <button onClick={() => setStep("cart")} className="p-2 hover:bg-app-bg rounded-full text-app-text">
-          <ArrowRight size={24} />
+          <ArrowLeft size={24} />
         </button>
       </header>
 

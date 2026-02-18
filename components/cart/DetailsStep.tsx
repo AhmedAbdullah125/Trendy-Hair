@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, Banknote, CheckCircle2, ChevronDown, CreditCard, Package, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, CheckCircle2, ChevronDown, CreditCard, Package, Wallet } from "lucide-react";
 import { useGetProfile } from "../requests/useGetProfile";
 import { useGetGovernorates } from "../requests/useGetGovernorates";
 import { useGetCities } from "../requests/useGetCities";
@@ -86,7 +86,7 @@ const DetailsStep: React.FC<Props> = ({
             <header className="px-6 pt-6 pb-4 bg-white border-b border-app-card/30 flex items-center justify-between">
                 <h1 className="text-xl font-bold text-app-text">بيانات الشحن والدفع</h1>
                 <button onClick={onBack} className="p-2 hover:bg-app-bg rounded-full text-app-text">
-                    <ArrowRight size={24} />
+                    <ArrowLeft size={24} />
                 </button>
             </header>
 

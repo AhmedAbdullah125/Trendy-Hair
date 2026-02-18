@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { CartItem, Order } from "../../App";
 import { LOYALTY_POINT_VALUE_KD, GAME_REDEMPTION_CAP_KD } from "../../constants";
 import { useDeleteCartItem } from "../requests/useDeleteCartItem";
@@ -59,6 +60,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
     const [lastOrderId, setLastOrderId] = useState("");
 
+    const qc = useQueryClient();
     const delMut = useDeleteCartItem();
 
     // Fetch cities data to get delivery costs
@@ -177,32 +179,6 @@ const CartFlow: React.FC<CartFlowProps> = ({
             return;
         }
 
-        // setIsProcessing(true);
-
-        // setTimeout(() => {
-        //     const orderId = `TH-${Math.floor(100000 + Math.random() * 900000)}`;
-        //     const newOrder: Order = {
-        //         id: orderId,
-        //         date: new Date().toLocaleDateString("en-GB"),
-        //         status: "قيد المعالجة",
-        //         total: `${finalTotal.toFixed(3)} د.ك`,
-        //         items: [...cartItems],
-        //     };
-
-        //     const pointsToDeduct = useLoyaltyPoints
-        //         ? Math.ceil(finalLoyaltyDeduction / LOYALTY_POINT_VALUE_KD)
-        //         : 0;
-
-        //     onDeductWallets(finalGameDeduction, pointsToDeduct);
-
-        //     setLastOrderId(orderId);
-        //     onAddOrder(newOrder, finalTotal);
-
-        //     setIsProcessing(false);
-        //     onClearCart?.();
-        //     setStep("success");
-        // }, 2000);
-
         const formData = new FormData();
         formData.append("use_wallet", "0");
         formData.append("governorate_id", addressForm.governorate);
@@ -211,7 +187,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
         formData.append("phone", addressForm.phone);
         formData.append("payment_type", paymentMethod);
         formData.append("notes", "");
-        createOrder(formData, lang, setStep, setIsProcessing);
+        createOrder(formData, lang, setStep, setIsProcessing, qc);
     };
 
     if (step === "details") {

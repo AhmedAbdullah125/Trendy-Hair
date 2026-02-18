@@ -4,7 +4,7 @@ import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
 import { toast } from "sonner";
 
-export const createOrder = async (formData, lang = 'ar', setStep, setloading) => {
+export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc) => {
     setloading(true);
     const token = Cookies.get("token") || localStorage.getItem("token");
 
@@ -19,6 +19,7 @@ export const createOrder = async (formData, lang = 'ar', setStep, setloading) =>
         const response = await axios.post(`${API_BASE_URL}/v1/order`, formData, { headers });
         toast.success(response.data.message);
         setStep("success");
+        if (qc) await qc.invalidateQueries({ queryKey: ["cart"] });
         setloading(false);
         return response.data;
     } catch (err) {

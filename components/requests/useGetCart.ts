@@ -66,6 +66,6 @@ export const useGetCart = (lang: string) =>
   useQuery({
     queryKey: ["cart", lang],
     queryFn: () => fetchCart(lang),
-    staleTime: 1000 * 15,
+    staleTime: 1000 * 5,
     gcTime: 1000 * 60 * 30,
   });
