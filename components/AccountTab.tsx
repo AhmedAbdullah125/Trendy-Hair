@@ -21,6 +21,7 @@ interface AccountTabProps {
   gameBalance: number;
   loyaltyPoints: number;
   onLogout: () => void;
+  onOpenCart?: () => void;
 }
 
 const AccountTab: React.FC<AccountTabProps> = ({
@@ -30,7 +31,8 @@ const AccountTab: React.FC<AccountTabProps> = ({
   onClearInitialOrder,
   gameBalance,
   loyaltyPoints,
-  onLogout
+  onLogout,
+  onOpenCart
 }) => {
   const navigate = useNavigate();
 
@@ -73,6 +75,7 @@ const AccountTab: React.FC<AccountTabProps> = ({
               loyaltyPoints={loyaltyPoints}
               onLogout={onLogout}
               navigate={navigate}
+              onOpenCart={onOpenCart}
             />
           }
         />

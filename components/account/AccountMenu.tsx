@@ -1,6 +1,7 @@
 import React from 'react';
 import {
-    Heart, Info, Mail, Phone, ChevronLeft, XCircle, Instagram, Ghost, Music2, ShoppingBag, Wallet, Award, Gamepad2, User, Edit2
+    Heart, Info, Mail, Phone, ChevronLeft, XCircle, Instagram, Ghost, Music2, ShoppingBag, Wallet, Award, Gamepad2, User, Edit2,
+    PackageCheck
 } from 'lucide-react';
 
 interface AccountMenuProps {
@@ -15,6 +16,7 @@ interface AccountMenuProps {
     loyaltyPoints: number;
     onLogout: () => void;
     navigate: (path: string) => void;
+    onOpenCart?: () => void;
 }
 
 const AccountMenu: React.FC<AccountMenuProps> = ({
@@ -22,7 +24,8 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
     gameBalance,
     loyaltyPoints,
     onLogout,
-    navigate
+    navigate,
+    onOpenCart
 }) => {
     return (
         <div className="animate-fadeIn">
@@ -71,7 +74,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
             </div>
 
             {/* Cards Grid (3 Columns) - All Square Aspect Ratio */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-6 lg:grid-cols-5">
 
                 {/* Game Wallet Card - Clickable */}
                 <div
@@ -134,9 +137,23 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 >
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
-                            <ShoppingBag size={22} />
+                            <PackageCheck size={22} />
                         </div>
                         <span className="text-sm font-bold text-app-text">طلباتي السابقة</span>
+                    </div>
+                    <ChevronLeft className="text-app-textSec opacity-40" size={20} />
+                </div>
+
+                {/* Cart */}
+                <div
+                    onClick={onOpenCart}
+                    className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
+                            <ShoppingBag size={22} />
+                        </div>
+                        <span className="text-sm font-bold text-app-text">سلة التسوق</span>
                     </div>
                     <ChevronLeft className="text-app-textSec opacity-40" size={20} />
                 </div>

@@ -323,6 +323,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                   gameBalance={gameBalance}
                   loyaltyPoints={loyaltyPoints}
                   onLogout={onLogout}
+                  onOpenCart={() => setIsCartOpen(true)}
                 />
               }
             />
