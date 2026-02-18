@@ -40,13 +40,11 @@ const CartFlow: React.FC<CartFlowProps> = ({
     onViewOrderDetails,
     gameBalance,
     loyaltyPoints,
-    onDeductWallets,
     lang = "ar",
 }) => {
     const [step, setStep] = useState<CheckoutStep>("cart");
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("online");
-
     // Wallet Usage State
     const [useGameBalance, setUseGameBalance] = useState(false);
     const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);

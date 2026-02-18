@@ -239,6 +239,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
             gameBalance={gameBalance}
             loyaltyPoints={loyaltyPoints}
             onDeductWallets={deductWallets}
+            lang={lang}
           />
         )}
       </div>
