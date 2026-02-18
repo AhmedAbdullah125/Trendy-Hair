@@ -90,20 +90,11 @@ const ProductDetailsView: React.FC<Props> = ({
     };
 
     const handleAddToCart = () => {
-        onAdd?.();
-
         if (!inStock) return notifyOutOfStock();
         if (stockQty > 0 && quantity > stockQty) return notifyMax();
         if (addMut.isPending) return;
 
-        addMut.mutate(
-            { product_id: product.id, quantity, lang },
-            {
-                onSuccess: () => {
-                    onOpenCart?.();
-                },
-            }
-        );
+        onAdd?.();
     };
 
     const handleBuyNow = () => {
