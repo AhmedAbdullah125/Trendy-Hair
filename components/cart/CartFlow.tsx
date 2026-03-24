@@ -11,6 +11,7 @@ import type { AddressForm, CheckoutStep } from "./types";
 import { createOrder } from "../requests/useCreateOrder";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useGetProfile } from "../requests/useGetProfile";
 
 interface CartFlowProps {
     cartItems: CartItem[];
@@ -24,7 +25,6 @@ interface CartFlowProps {
     onAddOrder: (order: Order, paidAmountKD: number) => void;
     onViewOrderDetails: (orderId: string) => void;
 
-    gameBalance: number;
     loyaltyPoints: number;
     onDeductWallets: (gameAmount: number, pointsAmount: number) => void;
 
@@ -39,10 +39,12 @@ const CartFlow: React.FC<CartFlowProps> = ({
     onClearCart,
     onAddOrder,
     onViewOrderDetails,
-    gameBalance,
     loyaltyPoints,
     lang = "ar",
 }) => {
+    // Derive game balance from profile API (stays in sync after reward claims)
+    const { data: profileData } = useGetProfile('ar');
+    const gameBalance = parseFloat(profileData?.wallet || '0');
     const [step, setStep] = useState<CheckoutStep>("cart");
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("online");
@@ -180,12 +182,12 @@ const CartFlow: React.FC<CartFlowProps> = ({
         }
 
         const formData = new FormData();
-        formData.append("use_wallet", "0");
+        formData.append("use_wallet", useGameBalance ? "1" : "0");
         formData.append("governorate_id", addressForm.governorate);
         formData.append("city_id", addressForm.area);
         formData.append("address", addressForm.details);
         formData.append("phone", addressForm.phone);
-        formData.append("payment_type", paymentMethod);
+        formData.append("payment_type", useGameBalance ? "wallet" : paymentMethod);
         formData.append("notes", "");
         createOrder(formData, lang, setStep, setIsProcessing, qc);
     };
@@ -196,7 +198,6 @@ const CartFlow: React.FC<CartFlowProps> = ({
                 addressForm={addressForm}
                 onChangeAddress={onChangeAddress}
                 onBack={() => setStep("cart")}
-                gameBalance={gameBalance}
                 loyaltyPoints={loyaltyPoints}
                 useGameBalance={useGameBalance}
                 setUseGameBalance={setUseGameBalance}

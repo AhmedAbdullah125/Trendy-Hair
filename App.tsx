@@ -236,7 +236,6 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
             onClearCart={handleClearCart}
             onAddOrder={handleAddOrder}
             onViewOrderDetails={handleViewOrderDetails}
-            gameBalance={gameBalance}
             loyaltyPoints={loyaltyPoints}
             onDeductWallets={deductWallets}
             lang={lang}
@@ -298,7 +297,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
             />
 
             <Route path="/reviews" element={<ReviewsTab />} />
-            <Route path="/play" element={<PlayTab onCreditWallet={creditGameBalance} gameBalance={gameBalance} />} />
+            <Route path="/play" element={<PlayTab onCreditWallet={creditGameBalance} />} />
             <Route
               path="/favorites"
               element={
@@ -321,7 +320,6 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                   favourites={favourites}
                   onToggleFavourite={handleToggleFavourite}
                   onAddToCart={handleAddToCart}
-                  gameBalance={gameBalance}
                   loyaltyPoints={loyaltyPoints}
                   onLogout={onLogout}
                   onOpenCart={() => setIsCartOpen(true)}

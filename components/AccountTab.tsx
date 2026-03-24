@@ -18,7 +18,6 @@ interface AccountTabProps {
   favourites: number[];
   onToggleFavourite: (productId: number) => void;
   onAddToCart: (product: Product, quantity: number) => void;
-  gameBalance: number;
   loyaltyPoints: number;
   onLogout: () => void;
   onOpenCart?: () => void;
@@ -29,7 +28,6 @@ const AccountTab: React.FC<AccountTabProps> = ({
   onNavigateToHome,
   initialOrderId,
   onClearInitialOrder,
-  gameBalance,
   loyaltyPoints,
   onLogout,
   onOpenCart
@@ -38,6 +36,9 @@ const AccountTab: React.FC<AccountTabProps> = ({
 
   // Fetch profile data from API
   const { data: profileData, isLoading: profileLoading, error: profileError } = useGetProfile('ar');
+
+  // Derive gameBalance from profile wallet
+  const gameBalance = profileData?.wallet;
 
   // Use profile data or fallback
   const currentUser = useMemo(() => {

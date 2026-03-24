@@ -1,23 +1,29 @@
 
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { GameState, PlayerState, Stage, Question } from '../types';
+import { GameState, PlayerState } from '../types';
 import { GAME_STAGES, LOCK_DURATION_MS, STORAGE_KEYS } from '../constants';
-import { Trophy, Play, Clock, Lock, CheckCircle2, Timer, AlertCircle, ChevronRight, LogOut, Crown } from 'lucide-react';
+import { Trophy, Play, Clock, Lock, CheckCircle2, Timer, AlertCircle, ChevronRight, LogOut, Loader2 } from 'lucide-react';
 import { audioService } from '../services/audioService';
 import GameScreen from './GameScreen';
 import Timeline from './Timeline';
 import { useData } from '../context/DataContext';
+import { useGetRandomQuestion } from './requests/useGetRandomQuestion';
+import { useClaimReward, stageIndexToLevel } from './requests/useClaimReward';
+import { useGetProfile } from './requests/useGetProfile';
 
 const INTERNAL_STORAGE_KEY = STORAGE_KEYS.GAME_STATE;
 
 interface PlayTabProps {
   onCreditWallet: (amount: number) => void;
-  gameBalance: number;
 }
 
-const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
-  const { questions, gameSettings } = useData();
+const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
+  const { gameSettings } = useData();
+
+  // Get wallet balance from profile API (stays in sync after reward claims)
+  const { data: profileData } = useGetProfile('ar');
+  const gameBalance = parseFloat(profileData?.wallet || '0');
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentStageIndex: 0,
@@ -28,30 +34,28 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
     lastWinTimestamp: null,
     lastWonStageIndex: null,
   });
-  
+
+  // Each increment fetches a brand-new question from the API
+  const [questionKey, setQuestionKey] = useState(0);
+
   // Initialize timer with configured time limit
   const [timeRemaining, setTimeRemaining] = useState(gameSettings.timeLimitSeconds);
   const [showMilestoneModal, setShowMilestoneModal] = useState<boolean>(false);
   const timerRef = useRef<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
-  // Dynamically map questions to stages based on difficulty
-  const dynamicStages: Stage[] = useMemo(() => {
-    return GAME_STAGES.map(stage => {
-      // Filter questions by difficulty
-      const stageQuestions = questions.filter(q => q.difficulty === stage.difficulty);
-      // Ensure we have exactly 5 questions (repeat or slice if needed)
-      // For demo robustness, we fill with first available if not enough, or slice first 5
-      const finalQuestions = stageQuestions.length >= 5 
-        ? stageQuestions.slice(0, 5) 
-        : [...stageQuestions, ...stageQuestions, ...stageQuestions].slice(0, 5); // Fallback repeat
+  const isPlaying = gameState === GameState.PLAYING && !showMilestoneModal;
 
-      return {
-        ...stage,
-        questions: finalQuestions.length > 0 ? finalQuestions : stage.questions // Fallback to hardcoded if empty
-      };
-    });
-  }, [questions]);
+  // Fetch a random question from the API
+  const {
+    data: currentQuestion,
+    isLoading: questionLoading,
+    isError: questionError,
+    refetch: refetchQuestion,
+  } = useGetRandomQuestion(questionKey, isPlaying);
+
+  // Reward claim mutation
+  const claimReward = useClaimReward();
 
   // Check if balance has reached the cap to disable new games
   const isBalanceCapped = gameBalance >= gameSettings.gameBalanceCap;
@@ -195,10 +199,11 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
     audioService.playSuccess();
 
     const lastStageIndex = GAME_STAGES.length - 1;
-    // Use dynamic reward if needed, for now stick to stage name from constant/mapped
-    // Ideally we map gameSettings.stageRewards to GAME_STAGES in useMemo
     const prizeString = GAME_STAGES[lastStageIndex].rewardName;
     const prizeAmount = parseFloat(prizeString.replace(/[^\d.]/g, ''));
+
+    // Call rewards-claim API with level_three (last stage)
+    claimReward.mutate(stageIndexToLevel(lastStageIndex));
 
     // Credit Wallet
     onCreditWallet(prizeAmount);
@@ -243,34 +248,40 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
     audioService.playSuccess();
   };
 
+  // Number of questions per stage (from GAME_STAGES constant)
+  const QUESTIONS_PER_STAGE = 5;
+
   const handleAnswer = (isCorrect: boolean) => {
     if (!isCorrect) {
       handleGameOver();
       return;
     }
-    
-    const currentStage = dynamicStages[playerState.currentStageIndex];
-    
-    if (playerState.currentQuestionIndex < currentStage.questions.length - 1) {
+
+    // Correct answer — advance to next question
+    const nextQuestionIndex = playerState.currentQuestionIndex + 1;
+
+    if (nextQuestionIndex < QUESTIONS_PER_STAGE) {
+      // More questions in this stage — fetch a new one
       setTimeRemaining(gameSettings.timeLimitSeconds);
+      setQuestionKey(k => k + 1);
       saveState({
         ...playerState,
-        currentQuestionIndex: playerState.currentQuestionIndex + 1
+        currentQuestionIndex: nextQuestionIndex,
       });
     } else {
       // Stage Completed
       if (playerState.currentStageIndex < GAME_STAGES.length - 1) {
         if (timerRef.current) clearInterval(timerRef.current);
-        
-        // Mark current stage as passed for UI, but user can still lose it if they continue and fail
+
+        // Mark current stage as passed
         const newRewards = [...playerState.rewardsEarned];
         newRewards[playerState.currentStageIndex] = true;
-        
+
         saveState({
-           ...playerState,
-           rewardsEarned: newRewards
+          ...playerState,
+          rewardsEarned: newRewards,
         });
-        
+
         setShowMilestoneModal(true);
       } else {
         handleGameWin();
@@ -280,10 +291,11 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
 
   const onContinue = () => {
     setTimeRemaining(gameSettings.timeLimitSeconds);
+    setQuestionKey(k => k + 1);
     saveState({
       ...playerState,
       currentStageIndex: playerState.currentStageIndex + 1,
-      currentQuestionIndex: 0
+      currentQuestionIndex: 0,
     });
     setShowMilestoneModal(false);
   };
@@ -295,7 +307,10 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
     // Calculate current prize
     const currentPrizeString = GAME_STAGES[playerState.currentStageIndex].rewardName;
     const currentPrizeAmount = parseFloat(currentPrizeString.replace(/[^\d.]/g, ''));
-    
+
+    // Call rewards-claim API with the current stage level
+    claimReward.mutate(stageIndexToLevel(playerState.currentStageIndex));
+
     // Credit Wallet
     onCreditWallet(currentPrizeAmount);
 
@@ -505,24 +520,37 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
     );
   }
 
-  const currentStage = dynamicStages[playerState.currentStageIndex];
-  const currentQuestion = currentStage.questions[playerState.currentQuestionIndex];
-  
-  // Guard against missing questions if DB is empty
-  if (!currentQuestion) {
-      return (
-          <div className="flex flex-col h-full items-center justify-center text-center p-6">
-              <AlertCircle size={48} className="text-red-500 mb-4" />
-              <h2 className="text-xl font-bold mb-2">عذراً، حدث خطأ</h2>
-              <p className="text-app-textSec">لا توجد أسئلة كافية في بنك الأسئلة لهذه المرحلة.</p>
-              <button onClick={() => setGameState(GameState.IDLE)} className="mt-4 text-app-gold font-bold">العودة</button>
-          </div>
-      );
-  }
-
-  const isLastQuestion = playerState.currentQuestionIndex === currentStage.questions.length - 1;
+  const currentStage = GAME_STAGES[playerState.currentStageIndex];
+  const isLastQuestion = playerState.currentQuestionIndex === QUESTIONS_PER_STAGE - 1;
   const currentReward = GAME_STAGES[playerState.currentStageIndex].rewardName;
   const nextReward = GAME_STAGES[playerState.currentStageIndex + 1]?.rewardName || '';
+
+  // Loading state between questions
+  if (questionLoading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center p-6 font-alexandria">
+        <Loader2 size={40} className="text-app-gold animate-spin mb-4" />
+        <p className="text-app-textSec font-medium">جاري تحميل السؤال...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (questionError || !currentQuestion) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center p-6 font-alexandria">
+        <AlertCircle size={48} className="text-red-500 mb-4" />
+        <h2 className="text-xl font-bold mb-2">عذراً، حدث خطأ</h2>
+        <p className="text-app-textSec mb-4">تعذّر تحميل السؤال. يرجى المحاولة مجدداً.</p>
+        <button
+          onClick={() => refetchQuestion()}
+          className="text-app-gold font-bold border border-app-gold px-6 py-2 rounded-xl active:scale-95 transition-transform"
+        >
+          إعادة المحاولة
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full pt-4 px-4 pb-24 overflow-hidden relative font-alexandria">
@@ -574,7 +602,7 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet, gameBalance }) => {
             <span className="text-xs text-app-textSec">الجائزة الحالية: {currentStage.rewardName}</span>
          </div>
          <div className="bg-app-card px-3 py-1 rounded-lg">
-            <span className="text-xs font-bold text-app-text">{currentStage.difficulty === 'easy' ? 'سهل' : currentStage.difficulty === 'medium' ? 'متوسط' : 'صعب'}</span>
+            <span className="text-xs font-bold text-app-text">{playerState.currentQuestionIndex + 1} / {QUESTIONS_PER_STAGE}</span>
          </div>
       </div>
       

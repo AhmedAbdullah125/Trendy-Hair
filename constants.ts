@@ -39,36 +39,36 @@ const INITIAL_CATEGORIES: Category[] = [
 ];
 
 const INITIAL_BRANDS: Brand[] = [
-  { 
-    id: 1, 
-    name: '24KERATS', 
+  {
+    id: 1,
+    name: '24KERATS',
     nameEn: '24KERATS',
     slug: '24kerats',
     image: 'https://trandyhair.com/cdn/shop/collections/images.png?v=1754656196',
     isActive: true,
     sortOrder: 1
   },
-  { 
-    id: 2, 
-    name: 'LAlga', 
+  {
+    id: 2,
+    name: 'LAlga',
     nameEn: 'LAlga',
     slug: 'lalga',
     image: 'https://trandyhair.com/cdn/shop/collections/lalga.webp?v=1754656187',
     isActive: true,
     sortOrder: 2
   },
-  { 
-    id: 3, 
-    name: 'INNOVATIS', 
+  {
+    id: 3,
+    name: 'INNOVATIS',
     nameEn: 'INNOVATIS',
     slug: 'innovatis',
     image: 'https://trandyhair.com/cdn/shop/collections/images.jpg?v=1754656179',
     isActive: true,
     sortOrder: 3
   },
-  { 
-    id: 4, 
-    name: 'TRENDYHAIR', 
+  {
+    id: 4,
+    name: 'TRENDYHAIR',
     nameEn: 'TRENDYHAIR',
     slug: 'trendyhair',
     image: 'https://trandyhair.com/cdn/shop/collections/Trendy_Hair.webp?v=1754656204',
@@ -143,7 +143,7 @@ const INITIAL_PACKAGES: Package[] = [
     id: 'widget_1',
     name: 'بكج ترميم نور الفوري من 5 - 15 دقيقة',
     price: '0', // Not used for widget display, but required by type
-    productIds: [1, 2, 3, 5], 
+    productIds: [1, 2, 3, 5],
     isActive: true,
     displayOrder: 1
   },
@@ -159,8 +159,8 @@ const INITIAL_PACKAGES: Package[] = [
 
 // --- REVIEWS SEED DATA ---
 const INITIAL_REVIEWS: Review[] = [
-  { 
-    id: '1', 
+  {
+    id: '1',
     thumbnailUrl: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=400&q=80',
     videoUrl: 'https://raiyansoft.com/wp-content/uploads/2025/12/trandyhair-1.mp4',
     customerName: 'أمل العتيبي',
@@ -168,8 +168,8 @@ const INITIAL_REVIEWS: Review[] = [
     sortOrder: 1,
     date: new Date().toISOString()
   },
-  { 
-    id: '2', 
+  {
+    id: '2',
     thumbnailUrl: 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=400&q=80',
     videoUrl: 'https://raiyansoft.com/wp-content/uploads/2025/12/trandyhair-1.mp4',
     customerName: 'نورة المطيري',
@@ -177,8 +177,8 @@ const INITIAL_REVIEWS: Review[] = [
     sortOrder: 2,
     date: new Date().toISOString()
   },
-  { 
-    id: '3', 
+  {
+    id: '3',
     thumbnailUrl: 'https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&w=400&q=80',
     videoUrl: 'https://raiyansoft.com/wp-content/uploads/2025/12/trandyhair-1.mp4',
     customerName: 'سارة الكندري',
@@ -186,8 +186,8 @@ const INITIAL_REVIEWS: Review[] = [
     sortOrder: 3,
     date: new Date().toISOString()
   },
-  { 
-    id: '4', 
+  {
+    id: '4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=400&q=80',
     videoUrl: 'https://raiyansoft.com/wp-content/uploads/2025/12/trandyhair-1.mp4',
     customerName: 'ليلى الدوسري',
@@ -195,8 +195,8 @@ const INITIAL_REVIEWS: Review[] = [
     sortOrder: 4,
     date: new Date().toISOString()
   },
-  { 
-    id: '5', 
+  {
+    id: '5',
     thumbnailUrl: 'https://images.unsplash.com/photo-1492158244976-29b84ba93025?auto=format&fit=crop&w=400&q=80',
     videoUrl: 'https://raiyansoft.com/wp-content/uploads/2025/12/trandyhair-1.mp4',
     customerName: 'ريم العنزي',
@@ -204,8 +204,8 @@ const INITIAL_REVIEWS: Review[] = [
     sortOrder: 5,
     date: new Date().toISOString()
   },
-  { 
-    id: '6', 
+  {
+    id: '6',
     thumbnailUrl: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=400&q=80',
     videoUrl: 'https://raiyansoft.com/wp-content/uploads/2025/12/trandyhair-1.mp4',
     customerName: 'منى القحطاني',
@@ -223,7 +223,7 @@ const INITIAL_QUESTIONS: Question[] = [
   { id: 103, text: 'ما هو المكون الأساسي للشعر؟', options: ['الماء', 'الكيراتين', 'الدهون', 'الكولاجين'], correctAnswer: 1, difficulty: 'easy' },
   { id: 104, text: 'ما هو أفضل وقت لتمشيط الشعر المجعد؟', options: ['عندما يكون جافاً', 'عندما يكون مبللاً', 'بعد الاستشوار', 'قبل النوم'], correctAnswer: 1, difficulty: 'easy' },
   { id: 105, text: 'أي زيت يعتبر الأفضل لترطيب الشعر الجاف؟', options: ['زيت الذرة', 'زيت الأرغان', 'زيت السيارات', 'الخل'], correctAnswer: 1, difficulty: 'easy' },
-  
+
   // Medium
   { id: 201, text: 'ما هو الهدف الرئيسي من استخدام بلسم الشعر؟', options: ['تنظيف الفروة', 'ترطيب وإغلاق المسام', 'تغيير اللون', 'زيادة الطول'], correctAnswer: 1, difficulty: 'medium' },
   { id: 202, text: 'ما السبب الأكثر شيوعاً لقشرة الشعر؟', options: ['الفطريات وجفاف الفروة', 'كثرة غسل الشعر', 'نقص فيتامين C', 'استخدام العطور'], correctAnswer: 0, difficulty: 'medium' },
@@ -292,7 +292,7 @@ export const GAME_STAGES: Stage[] = [
     id: 3,
     name: 'المرحلة 3',
     difficulty: 'hard',
-    rewardName: '40 د.ك',
+    rewardName: '30 د.ك',
     questions: BASE_QUESTIONS
   }
 ];

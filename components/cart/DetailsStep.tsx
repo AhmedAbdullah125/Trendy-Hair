@@ -12,7 +12,6 @@ type Props = {
     onBack: () => void;
 
     // Wallet + totals
-    gameBalance: number;
     loyaltyPoints: number;
 
     useGameBalance: boolean;
@@ -44,7 +43,6 @@ const DetailsStep: React.FC<Props> = ({
     addressForm,
     onChangeAddress,
     onBack,
-    gameBalance,
     loyaltyPoints,
     useGameBalance,
     setUseGameBalance,
@@ -67,6 +65,9 @@ const DetailsStep: React.FC<Props> = ({
     const { data: profileData, isLoading: profileLoading } = useGetProfile('ar');
     const { data: governoratesData, isLoading: governoratesLoading } = useGetGovernorates('ar');
     const { data: citiesData, isLoading: citiesLoading } = useGetCities('ar', addressForm.governorate);
+
+    // Derive game balance from profile wallet
+    const gameBalance = parseFloat(profileData?.wallet || '0');
 
     // Pre-fill name from profile
     React.useEffect(() => {
@@ -224,7 +225,7 @@ const DetailsStep: React.FC<Props> = ({
                     </div>
 
                     {/* Loyalty points */}
-                    <div>
+                    {/* <div>
                         <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2">
                                 <CheckCircle2 size={16} className={useLoyaltyPoints ? "text-green-500" : "text-gray-300"} />
@@ -260,7 +261,7 @@ const DetailsStep: React.FC<Props> = ({
                         ) : (
                             <p className="text-xs text-app-textSec italic">لا توجد نقاط متاحة</p>
                         )}
-                    </div>
+                    </div> */}
                 </section>
 
                 {/* Payment */}

@@ -99,7 +99,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 </div>
 
                 {/* Loyalty Points Card - Clickable */}
-                <div
+                {/* <div
                     onClick={() => navigate('/account/wallet/cashback')}
                     className="bg-white rounded-[1.5rem] p-3 shadow-sm border border-app-card/30 flex flex-col justify-between relative overflow-hidden aspect-square cursor-pointer active:scale-95 transition-transform"
                 >
@@ -116,7 +116,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                         <span className="text-lg font-bold text-app-gold block leading-none mb-0.5">{loyaltyPoints}</span>
                         <span className="text-[8px] font-medium text-app-textSec block leading-tight">100 ≈ 1 دك</span>
                     </div>
-                </div>
+                </div> */}
 
                 {/* QR Code Card - Image Only */}
                 <div className="bg-white rounded-[1.5rem] p-3 shadow-sm border border-app-card/30 flex items-center justify-center relative overflow-hidden aspect-square">
