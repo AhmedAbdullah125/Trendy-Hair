@@ -47,7 +47,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
     const gameBalance = parseFloat(profileData?.wallet || '0');
     const [step, setStep] = useState<CheckoutStep>("cart");
     const [isProcessing, setIsProcessing] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("online");
+    const [paymentMethod, setPaymentMethod] = useState<"cash" | "visa" | "knet">("visa");
     // Wallet Usage State
     const [useGameBalance, setUseGameBalance] = useState(false);
     const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
@@ -183,13 +183,14 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
         const formData = new FormData();
         formData.append("use_wallet", useGameBalance ? "1" : "0");
+        formData.append("wallet_amount", useGameBalance ? finalGameDeduction.toFixed(3) : "0");
         formData.append("governorate_id", addressForm.governorate);
         formData.append("city_id", addressForm.area);
         formData.append("address", addressForm.details);
         formData.append("phone", addressForm.phone);
-        formData.append("payment_type", useGameBalance ? "wallet" : paymentMethod);
+        formData.append("payment_type", paymentMethod);
         formData.append("notes", "");
-        createOrder(formData, lang, setStep, setIsProcessing, qc);
+        createOrder(formData, lang, setStep, setIsProcessing, qc, paymentMethod);
     };
 
     if (step === "details") {

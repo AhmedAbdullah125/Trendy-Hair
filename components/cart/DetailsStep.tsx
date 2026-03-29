@@ -32,8 +32,8 @@ type Props = {
     subtotal: number;
     deliveryFee: number;
 
-    paymentMethod: "online" | "cash";
-    setPaymentMethod: (v: "online" | "cash") => void;
+    paymentMethod: "cash" | "visa" | "knet";
+    setPaymentMethod: (v: "cash" | "visa" | "knet") => void;
 
     isProcessing: boolean;
     onPay: () => void;
@@ -273,17 +273,31 @@ const DetailsStep: React.FC<Props> = ({
 
                     <div className="space-y-3">
                         <button
-                            onClick={() => setPaymentMethod("online")}
-                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "online" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                            onClick={() => setPaymentMethod("visa")}
+                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "visa" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
                                 }`}
                         >
                             <div className="flex items-center gap-3">
-                                <CreditCard className={paymentMethod === "online" ? "text-app-gold" : "text-app-textSec"} />
-                                <span className={`text-sm font-bold ${paymentMethod === "online" ? "text-app-text" : "text-app-textSec"}`}>
-                                    دفع إلكتروني
+                                <CreditCard className={paymentMethod === "visa" ? "text-app-gold" : "text-app-textSec"} />
+                                <span className={`text-sm font-bold ${paymentMethod === "visa" ? "text-app-text" : "text-app-textSec"}`}>
+                                    فيزا / بطاقة ائتمانية
                                 </span>
                             </div>
-                            <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === "online" ? "border-app-gold bg-app-gold" : "border-app-card"}`} />
+                            <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === "visa" ? "border-app-gold bg-app-gold" : "border-app-card"}`} />
+                        </button>
+
+                        <button
+                            onClick={() => setPaymentMethod("knet")}
+                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "knet" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                                }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Wallet className={paymentMethod === "knet" ? "text-app-gold" : "text-app-textSec"} />
+                                <span className={`text-sm font-bold ${paymentMethod === "knet" ? "text-app-text" : "text-app-textSec"}`}>
+                                    كي-نت
+                                </span>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === "knet" ? "border-app-gold bg-app-gold" : "border-app-card"}`} />
                         </button>
 
                         <button

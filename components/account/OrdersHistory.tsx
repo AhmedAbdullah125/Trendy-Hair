@@ -55,6 +55,30 @@ const OrdersHistory: React.FC<OrdersHistoryProps> = ({ onNavigateToHome, navigat
         }
     };
 
+    // Get payment status badge color
+    const getPaymentStatusColor = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'paid':
+                return 'bg-green-50 text-green-600 border border-green-200';
+            case 'pending':
+                return 'bg-orange-50 text-orange-500 border border-orange-200';
+            default:
+                return 'bg-gray-50 text-gray-500 border border-gray-200';
+        }
+    };
+
+    // Get payment status label in Arabic
+    const getPaymentStatusLabel = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'paid':
+                return 'مدفوع';
+            case 'pending':
+                return 'في الانتظار';
+            default:
+                return status;
+        }
+    };
+
     return (
         <div className="animate-fadeIn h-full flex flex-col">
             <header className="flex items-center gap-4 mb-8">
@@ -106,12 +130,19 @@ const OrdersHistory: React.FC<OrdersHistoryProps> = ({ onNavigateToHome, navigat
                             key={order.id}
                             className="bg-white rounded-[2rem] p-6 shadow-sm border border-app-card/30"
                         >
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between mb-3">
                                 <span className="text-sm font-bold text-app-text">
                                     رقم الطلب: {order.order_number}
                                 </span>
                                 <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${getStatusColor(order.status)}`}>
                                     {getStatusLabel(order.status)}
+                                </span>
+                            </div>
+                            {/* Payment status tag */}
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-[10px] text-app-textSec">حالة الدفع:</span>
+                                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${getPaymentStatusColor(order.payment_status)}`}>
+                                    {getPaymentStatusLabel(order.payment_status)}
                                 </span>
                             </div>
 

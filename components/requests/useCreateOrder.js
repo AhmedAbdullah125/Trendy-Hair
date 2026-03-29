@@ -4,7 +4,7 @@ import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
 import { toast } from "sonner";
 
-export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc) => {
+export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc, paymentMethod = 'cash') => {
     setloading(true);
     const token = Cookies.get("token") || localStorage.getItem("token");
 
@@ -17,11 +17,25 @@ export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc
 
     try {
         const response = await axios.post(`${API_BASE_URL}/v1/order`, formData, { headers });
-        toast.success(response.data.message);
-        setStep("success");
-        if (qc) await qc.invalidateQueries({ queryKey: ["cart"] });
-        setloading(false);
-        return response.data;
+        const data = response.data;
+        toast.success(data.message);
+
+        const paymentUrl = data?.items?.payment_url;
+        const isOnlinePayment = paymentMethod === 'visa' || paymentMethod === 'knet';
+
+        if (isOnlinePayment && paymentUrl) {
+            // Invalidate cart before redirecting to payment gateway
+            if (qc) await qc.invalidateQueries({ queryKey: ["cart"] });
+            setloading(false);
+            window.location.href = paymentUrl;
+        } else {
+            // Cash: go to success screen
+            setStep("success");
+            if (qc) await qc.invalidateQueries({ queryKey: ["cart"] });
+            setloading(false);
+        }
+
+        return data;
     } catch (err) {
         setloading(false);
         throw err;
