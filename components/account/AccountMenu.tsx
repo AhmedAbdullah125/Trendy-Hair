@@ -29,6 +29,11 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
 }) => {
     const [showAbout, setShowAbout] = useState(false);
 
+    const openInBrowser = (url: string) => {
+        // '_system' tells React Native WebView / Capacitor to open in the native browser
+        window.open(url, '_system');
+    };
+
     return (
         <div className="animate-fadeIn">
             <div className="text-center mb-8">
@@ -196,15 +201,24 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
 
             {/* Social Icons */}
             <div className="flex justify-center items-center gap-8 mb-4">
-                <a href="https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1" target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg">
+                <button
+                    onClick={() => openInBrowser('https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1')}
+                    className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg"
+                >
                     <Music2 size={26} />
-                </a>
-                <a href="https://www.instagram.com/trandyhair" target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg">
+                </button>
+                <button
+                    onClick={() => openInBrowser('https://www.instagram.com/trandyhair')}
+                    className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg"
+                >
                     <Instagram size={26} />
-                </a>
-                <a href="https://www.snapchat.com/@trandyhairnoor?src=QR_CODE" target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg">
+                </button>
+                <button
+                    onClick={() => openInBrowser('https://www.snapchat.com/@trandyhairnoor?src=QR_CODE')}
+                    className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg"
+                >
                     <Ghost size={26} fill="currentColor" />
-                </a>
+                </button>
             </div>
 
             {/* About Modal */}

@@ -2,7 +2,6 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
-import { toast } from "sonner";
 
 export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc, paymentMethod = 'cash') => {
     setloading(true);
@@ -18,8 +17,6 @@ export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc
     try {
         const response = await axios.post(`${API_BASE_URL}/v1/order`, formData, { headers });
         const data = response.data;
-        toast.success(data.message);
-
         const paymentUrl = data?.items?.payment_url;
         const isOnlinePayment = paymentMethod === 'visa' || paymentMethod === 'knet';
 
