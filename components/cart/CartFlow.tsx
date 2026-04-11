@@ -17,8 +17,6 @@ interface CartFlowProps {
     cartItems: CartItem[];
     onClose: () => void;
 
-    onUpdateQuantity: (productId: number, delta: number) => void;
-
     onRemoveItem: (productId: number) => void;
     onClearCart: () => void;
 
@@ -34,7 +32,6 @@ interface CartFlowProps {
 const CartFlow: React.FC<CartFlowProps> = ({
     cartItems,
     onClose,
-    onUpdateQuantity,
     onRemoveItem,
     onClearCart,
     onAddOrder,
@@ -234,11 +231,10 @@ const CartFlow: React.FC<CartFlowProps> = ({
     return (
         <CartStep
             cartItems={cartItems}
-            isDeleting={delMut.isPending}
             subtotal={subtotal}
+            lang={lang}
             onClose={onClose}
             onGoDetails={() => setStep("details")}
-            onUpdateQuantity={onUpdateQuantity}
             onDeleteItem={handleDeleteItem}
             onClearAll={handleClearAll}
         />

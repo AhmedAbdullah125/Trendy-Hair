@@ -1,27 +1,107 @@
-import React from "react";
-import { ArrowLeft, ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowLeft, CheckCircle2, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import type { CartItem } from "../../App";
+import { addToCart } from "../requests/addToCart";
+import { useDeleteCartItem } from "../requests/useDeleteCartItem";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
     cartItems: CartItem[];
-    isDeleting?: boolean;
     subtotal: number;
+    lang?: string;
 
     onClose: () => void;
     onGoDetails: () => void;
 
-    onUpdateQuantity: (productId: number, delta: number) => void;
     onDeleteItem: (item: CartItem) => void;
     onClearAll: () => void;
 };
 
+// ── Per-item counter ──────────────────────────────────────────────────────────
+type CounterProps = {
+    item: CartItem;
+    lang: string;
+};
+
+const CartItemCounter: React.FC<CounterProps> = ({ item, lang }) => {
+    const qc = useQueryClient();
+    const deleteMut = useDeleteCartItem();
+
+    const [localQty, setLocalQty] = useState(item.quantity);
+    const [updateLoading, setUpdateLoading] = useState(false);
+
+    // Keep in sync when server data changes (e.g. after invalidation)
+    useEffect(() => {
+        setLocalQty(item.quantity);
+    }, [item.quantity]);
+
+    const isDirty = localQty !== item.quantity;
+    const isBusy = updateLoading || deleteMut.isPending;
+
+    const handleDecrement = () => setLocalQty((q) => Math.max(0, q - 1));
+    const handleIncrement = () => setLocalQty((q) => q + 1);
+
+    const handleConfirm = async () => {
+        if (isBusy) return;
+
+        if (localQty === 0) {
+            deleteMut.mutate({ cartItemId: item.id, lang });
+        } else {
+            await addToCart(item.product.id, localQty, setUpdateLoading, lang);
+            await qc.invalidateQueries({ queryKey: ["cart"] });
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-1">
+            {/* Minus */}
+            <button
+                onClick={handleDecrement}
+                disabled={isBusy}
+                className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+            >
+                <Minus size={11} className="text-app-text" />
+            </button>
+
+            {/* Quantity */}
+            <span className="min-w-[18px] text-center text-xs font-bold text-app-text font-alexandria">
+                {localQty}
+            </span>
+
+            {/* Plus */}
+            <button
+                onClick={handleIncrement}
+                disabled={isBusy}
+                className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+            >
+                <Plus size={11} className="text-app-text" />
+            </button>
+
+            {/* Confirm — only visible when quantity changed */}
+            {isDirty && (
+                <button
+                    onClick={handleConfirm}
+                    disabled={isBusy}
+                    className="w-6 h-6 rounded-lg bg-app-gold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-60 ml-0.5"
+                >
+                    {isBusy ? (
+                        <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                        <CheckCircle2 size={13} className="text-white" />
+                    )}
+                </button>
+            )}
+        </div>
+    );
+};
+
+// ── CartStep ──────────────────────────────────────────────────────────────────
 const CartStep: React.FC<Props> = ({
     cartItems,
-    isDeleting,
     subtotal,
+    lang = "ar",
     onClose,
     onGoDetails,
-    onUpdateQuantity,
     onDeleteItem,
     onClearAll,
 }) => {
@@ -34,8 +114,7 @@ const CartStep: React.FC<Props> = ({
                     {cartItems.length > 0 && (
                         <button
                             onClick={onClearAll}
-                            disabled={!!isDeleting}
-                            className="p-2 hover:bg-red-50 rounded-full text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-2 hover:bg-red-50 rounded-full text-red-500"
                             title="تفريغ السلة"
                         >
                             <Trash2 size={20} />
@@ -81,30 +160,13 @@ const CartStep: React.FC<Props> = ({
                                     </div>
 
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3 bg-app-bg px-2 py-1 rounded-xl">
-                                            <button
-                                                onClick={() => onUpdateQuantity(item.product.id, 1)}
-                                                className="p-1 text-app-gold"
-                                                disabled={!!isDeleting}
-                                            >
-                                                <Plus size={14} />
-                                            </button>
+                                        {/* Counter with confirm logic */}
+                                        <CartItemCounter item={item} lang={lang} />
 
-                                            <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-
-                                            <button
-                                                onClick={() => onUpdateQuantity(item.product.id, -1)}
-                                                className="p-1 text-app-gold"
-                                                disabled={!!isDeleting}
-                                            >
-                                                <Minus size={14} />
-                                            </button>
-                                        </div>
-
+                                        {/* Delete button */}
                                         <button
                                             onClick={() => onDeleteItem(item)}
-                                            disabled={!!isDeleting}
-                                            className="text-red-400 p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="text-red-400 p-2"
                                             title="حذف المنتج"
                                         >
                                             <Trash2 size={16} />
