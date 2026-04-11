@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, User, Phone, Mail, Edit2, Save, CheckCircle2 } from 'lucide-react';
+import { useUpdateProfile } from '../requests/updateProfile';
 
 interface EditAccountFormProps {
     currentUser: {
@@ -9,19 +10,19 @@ interface EditAccountFormProps {
         photo: string;
     };
     navigate: (path: string) => void;
+    lang?: string;
 }
 
-const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate }) => {
+const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate, lang = 'ar' }) => {
     const [name, setName] = useState(currentUser.name || '');
     const [phone, setPhone] = useState(currentUser.phone || '');
     const [email, setEmail] = useState(currentUser.email || '');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [isLoading, setIsLoading] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
+
+    const { mutate: updateProfile, isPending: isLoading } = useUpdateProfile(lang);
 
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -54,7 +55,7 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
         }
     };
 
-    const handleSave = async (e: React.FormEvent) => {
+    const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: { [key: string]: string } = {};
 
@@ -73,27 +74,20 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
 
         // Prepare update data
         const updateData: any = { name, phone };
-        if (email.trim()) {
-            updateData.email = email;
-        }
-        if (photoFile) {
-            updateData.photo = photoFile;
-        }
+        if (email.trim()) updateData.email = email;
+        if (photoFile) updateData.photo = photoFile;
 
-        try {
-            // Call the updateProfile API
-            const { updateProfile } = await import('../requests/updateProfile');
-            await updateProfile(updateData, setIsLoading, 'ar', navigate);
-
-            setSuccessMsg('تم حفظ التعديلات بنجاح');
-            setErrors({});
-
-            setTimeout(() => {
-                navigate('/account');
-            }, 1500);
-        } catch (error) {
-            console.error('Update profile error:', error);
-        }
+        updateProfile(updateData, {
+            onSuccess: (responseData) => {
+                if (responseData?.status) {
+                    setSuccessMsg('تم حفظ التعديلات بنجاح');
+                    setErrors({});
+                    setTimeout(() => {
+                        navigate('/account');
+                    }, 1500);
+                }
+            },
+        });
     };
 
     return (
