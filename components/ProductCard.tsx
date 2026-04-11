@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Heart, Plus } from "lucide-react";
+import { CheckCircle2, Heart, Minus, Plus } from "lucide-react";
 import { Product } from "../types";
 import { toggleFavourite } from "./requests/toggleFavourites";
 import { useAddToCart } from "./requests/useAddToCart";
+import { useDeleteCartItem } from "./requests/useDeleteCartItem";
+import { useGetCart } from "./requests/useGetCart";
+import { addToCart } from "./requests/addToCart";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProductCardProps {
   product: Product;
@@ -20,10 +24,31 @@ const ProductCard: React.FC<ProductCardProps> = ({
   lang = "ar",
 }) => {
   const [favLoading, setFavLoading] = useState(false);
+  const [localFavOverride, setLocalFavOverride] = useState<boolean | null>(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
 
   const addMut = useAddToCart();
+  const deleteMut = useDeleteCartItem();
+  const qc = useQueryClient();
 
-  const [localFavOverride, setLocalFavOverride] = useState<boolean | null>(null);
+  const { data: cartData } = useGetCart(lang);
+
+  // Find the cart item that matches this product (if any)
+  const cartItem = useMemo(() => {
+    return cartData?.items?.items?.find(
+      (item) => item.product_id === product.id
+    ) ?? null;
+  }, [cartData, product.id]);
+
+  // Local quantity — synced with server whenever cartItem changes
+  const [localQty, setLocalQty] = useState<number>(cartItem?.quantity ?? 0);
+
+  useEffect(() => {
+    setLocalQty(cartItem?.quantity ?? 0);
+  }, [cartItem?.quantity]);
+
+  // True when local qty differs from confirmed server qty
+  const isDirty = cartItem && localQty !== cartItem.quantity;
 
   const isFav = useMemo(() => {
     const base = isFavourite;
@@ -37,19 +62,46 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const handleToggleFavourite = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (favLoading) return;
-
     const next = !isFav;
     setLocalFavOverride(next);
     onToggleFavourite(product.id);
-
     await toggleFavourite(product.id, setFavLoading, lang);
   };
 
+  // ── Add to cart (first time) ──────────────────────────────────────────────
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (addMut.isPending) return;
     addMut.mutate({ product_id: product.id, quantity: 1, lang });
   };
+
+  // ── Counter: minus ────────────────────────────────────────────────────────
+  const handleDecrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLocalQty((q) => Math.max(0, q - 1));
+  };
+
+  // ── Counter: plus ─────────────────────────────────────────────────────────
+  const handleIncrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLocalQty((q) => q + 1);
+  };
+
+  // ── Confirm / commit quantity change ──────────────────────────────────────
+  const handleConfirm = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!cartItem || updateLoading) return;
+
+    if (localQty === 0) {
+      deleteMut.mutate({ cartItemId: cartItem.id, lang });
+    } else {
+      await addToCart(product.id, localQty, setUpdateLoading, lang);
+      await qc.invalidateQueries({ queryKey: ["cart"] });
+    }
+  };
+
+  const isBusy =
+    addMut.isPending || updateLoading || deleteMut.isPending;
 
   return (
     <div
@@ -83,8 +135,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </button>
       </div>
 
-      <div className="p-3 pt-2 mt-auto flex items-center justify-between bg-white">
-        <div className="flex flex-col items-start">
+      <div className="p-3 pt-2 mt-auto flex items-center justify-between flex-wrap bg-white gap-2">
+        <div className="flex flex-col items-start shrink-0">
           <span className="text-sm font-bold text-app-gold font-alexandria">
             {(product as any).price}
           </span>
@@ -96,14 +148,61 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <button
-          onClick={handleAddToCart}
-          disabled={addMut.isPending}
-          className="bg-app-gold text-white text-[10px] font-bold py-1.5 px-3 rounded-xl active:scale-90 transition-transform flex items-center gap-1 disabled:opacity-60"
-        >
-          <span>أضف</span>
-          <Plus size={12} />
-        </button>
+        {/* ── Not in cart → Add button ─────────────────────────────── */}
+        {!cartItem ? (
+          <button
+            onClick={handleAddToCart}
+            disabled={isBusy}
+            className="bg-app-gold text-white text-[10px] font-bold py-1.5 px-3 rounded-xl active:scale-90 transition-transform flex items-center gap-1 disabled:opacity-60"
+          >
+            <span>أضف</span>
+            <Plus size={12} />
+          </button>
+        ) : (
+          /* ── In cart → Counter + confirm ─────────────────────────── */
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1"
+          >
+            {/* Minus */}
+            <button
+              onClick={handleDecrement}
+              disabled={isBusy}
+              className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+            >
+              <Minus size={11} className="text-app-text" />
+            </button>
+
+            {/* Quantity */}
+            <span className="min-w-[18px] text-center text-xs font-bold text-app-text font-alexandria">
+              {localQty}
+            </span>
+
+            {/* Plus */}
+            <button
+              onClick={handleIncrement}
+              disabled={isBusy}
+              className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+            >
+              <Plus size={11} className="text-app-text" />
+            </button>
+
+            {/* Confirm — only visible when quantity changed */}
+            {isDirty && (
+              <button
+                onClick={handleConfirm}
+                disabled={isBusy}
+                className="w-6 h-6 rounded-lg bg-app-gold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-60 ml-0.5"
+              >
+                {isBusy ? (
+                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle2 size={13} className="text-white" />
+                )}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
