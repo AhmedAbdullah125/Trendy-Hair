@@ -8,6 +8,7 @@ import { useGetCategories } from "../requests/useGetCategories";
 import { useGetHomeData } from "../requests/useGetHomeData";
 import { useGetProductsByCategory } from "../requests/useGetProductsByCategory";
 import { useGetProduct } from "../requests/useGetProduct";
+import { useGetCart } from "../requests/useGetCart";
 
 import HomeHeader from "./HomeHeader";
 import SideMenuDrawer from "./SideMenuDrawer";
@@ -41,6 +42,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     const { data: homeData } = useGetHomeData("ar");
     const { data: categoryProductsData, isLoading: categoryLoading, error: categoryError } = useGetProductsByCategory("ar", categoryPage, categoryId || "");
     const { data: apiProduct } = useGetProduct("ar", productId || "");
+    const { data: cartData } = useGetCart("ar");
 
     // Mappings
     const categories = useMemo(() => {
@@ -107,6 +109,19 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         } as any as Product;
     }, [apiProduct]);
 
+    const [lastSyncId, setLastSyncId] = useState<number | null>(null);
+
+    // Sync quantity with cart quantity when a product is opened
+    useEffect(() => {
+        if (selectedProduct && cartData) {
+            if (lastSyncId !== selectedProduct.id) {
+                const cartItem = cartData.items?.items?.find((item: any) => item.product_id === selectedProduct.id);
+                setQuantity(cartItem ? cartItem.quantity : 1);
+                setLastSyncId(selectedProduct.id);
+            }
+        }
+    }, [selectedProduct, cartData, lastSyncId]);
+
     // Handlers
     const toggleMenu = () => setIsMenuOpen((p) => !p);
 
@@ -117,6 +132,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
 
     const handleProductClick = (p: Product) => {
         setQuantity(1);
+        setLastSyncId(null);
         navigate(`/product/${p.id}`);
     };
 

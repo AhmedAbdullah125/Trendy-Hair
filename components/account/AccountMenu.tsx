@@ -85,8 +85,8 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
 
                 {/* Game Wallet Card - Clickable */}
                 <div
-                    onClick={() => navigate('/account/wallet/rewards')}
-                    className="bg-white rounded-[1.5rem] p-3 shadow-sm border border-app-card/30 flex flex-col justify-between relative overflow-hidden aspect-square cursor-pointer active:scale-95 transition-transform"
+                    // onClick={() => navigate('/account/wallet/rewards')}
+                    className="bg-white rounded-[1.5rem] p-3 shadow-sm border border-app-card/30 flex flex-col justify-between relative overflow-hidden aspect-square"
                 >
                     <div className="absolute -bottom-2 -right-2 p-2 opacity-5">
                         <Gamepad2 size={48} />
