@@ -54,7 +54,7 @@ const CartItemCounter: React.FC<CounterProps> = ({ item, lang }) => {
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [localQty, item.quantity, item.id, item.product.id, lang, qc, deleteMut]);
+    }, [localQty, item.quantity, item.id, item.product.id, lang, qc]);
 
     return (
         <div className="flex items-center gap-1">

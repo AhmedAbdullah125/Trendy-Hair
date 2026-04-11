@@ -102,7 +102,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [localQty, cartItem, lang, product.id, qc, deleteMut]);
+  }, [localQty, cartItem, lang, product.id, qc]);
 
   const isBusy =
     addMut.isPending || updateLoading || deleteMut.isPending;
