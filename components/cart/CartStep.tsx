@@ -41,16 +41,20 @@ const CartItemCounter: React.FC<CounterProps> = ({ item, lang }) => {
     const handleDecrement = () => setLocalQty((q) => Math.max(0, q - 1));
     const handleIncrement = () => setLocalQty((q) => q + 1);
 
-    const handleConfirm = async () => {
-        if (isBusy) return;
+    useEffect(() => {
+        if (localQty === item.quantity) return;
 
-        if (localQty === 0) {
-            deleteMut.mutate({ cartItemId: item.id, lang });
-        } else {
-            await addToCart(item.product.id, localQty, setUpdateLoading, lang);
-            await qc.invalidateQueries({ queryKey: ["cart"] });
-        }
-    };
+        const timer = setTimeout(async () => {
+            if (localQty === 0) {
+                deleteMut.mutate({ cartItemId: item.id, lang });
+            } else {
+                await addToCart(item.product.id, localQty, setUpdateLoading, lang);
+                await qc.invalidateQueries({ queryKey: ["cart"] });
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [localQty, item.quantity, item.id, item.product.id, lang, qc, deleteMut]);
 
     return (
         <div className="flex items-center gap-1">
@@ -77,19 +81,11 @@ const CartItemCounter: React.FC<CounterProps> = ({ item, lang }) => {
                 <Plus size={11} className="text-app-text" />
             </button>
 
-            {/* Confirm — only visible when quantity changed */}
-            {isDirty && (
-                <button
-                    onClick={handleConfirm}
-                    disabled={isBusy}
-                    className="w-6 h-6 rounded-lg bg-app-gold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-60 ml-0.5"
-                >
-                    {isBusy ? (
-                        <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                        <CheckCircle2 size={13} className="text-white" />
-                    )}
-                </button>
+            {/* Loading indicator */}
+            {isBusy && (
+                <div className="w-6 h-6 flex items-center justify-center ml-0.5">
+                    <div className="w-3 h-3 border-2 border-app-gold border-t-transparent rounded-full animate-spin" />
+                </div>
             )}
         </div>
     );

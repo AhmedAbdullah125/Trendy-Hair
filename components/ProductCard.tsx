@@ -87,18 +87,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
     setLocalQty((q) => q + 1);
   };
 
-  // ── Confirm / commit quantity change ──────────────────────────────────────
-  const handleConfirm = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!cartItem || updateLoading) return;
+  // ── Debounced quantity update ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!cartItem) return;
+    if (localQty === cartItem.quantity) return;
 
-    if (localQty === 0) {
-      deleteMut.mutate({ cartItemId: cartItem.id, lang });
-    } else {
-      await addToCart(product.id, localQty, setUpdateLoading, lang);
-      await qc.invalidateQueries({ queryKey: ["cart"] });
-    }
-  };
+    const timer = setTimeout(async () => {
+      if (localQty === 0) {
+        deleteMut.mutate({ cartItemId: cartItem.id, lang });
+      } else {
+        await addToCart(product.id, localQty, setUpdateLoading, lang);
+        await qc.invalidateQueries({ queryKey: ["cart"] });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [localQty, cartItem, lang, product.id, qc, deleteMut]);
 
   const isBusy =
     addMut.isPending || updateLoading || deleteMut.isPending;
@@ -187,19 +191,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <Plus size={11} className="text-app-text" />
             </button>
 
-            {/* Confirm — only visible when quantity changed */}
-            {isDirty && (
-              <button
-                onClick={handleConfirm}
-                disabled={isBusy}
-                className="w-6 h-6 rounded-lg bg-app-gold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-60 ml-0.5"
-              >
-                {isBusy ? (
-                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <CheckCircle2 size={13} className="text-white" />
-                )}
-              </button>
+            {/* Loading indicator */}
+            {isBusy && (
+              <div className="w-6 h-6 flex items-center justify-center ml-0.5">
+                <div className="w-3 h-3 border-2 border-app-gold border-t-transparent rounded-full animate-spin" />
+              </div>
             )}
           </div>
         )}
