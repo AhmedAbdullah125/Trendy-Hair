@@ -177,7 +177,10 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 </div>
 
                 {/* Email */}
-                <a href="mailto:Trendhair@info.com" className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer">
+                <div 
+                    onClick={() => window.location.href = "mailto:Trendhair@info.com"}
+                    className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer"
+                >
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
                             <Mail size={22} />
@@ -185,10 +188,13 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                         <span className="text-sm font-bold text-app-text">Trendhair@info.com</span>
                     </div>
                     <ChevronLeft className="text-app-textSec opacity-40" size={20} />
-                </a>
+                </div>
 
                 {/* Phone */}
-                <a href="tel:96554647655" className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer">
+                <div 
+                    onClick={() => window.location.href = "tel:+96554647655"}
+                    className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer"
+                >
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
                             <Phone size={22} />
@@ -196,7 +202,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                         <span className="text-sm font-bold text-app-text" dir="ltr">+96554647655</span>
                     </div>
                     <ChevronLeft className="text-app-textSec opacity-40" size={20} />
-                </a>
+                </div>
             </div>
 
             {/* Social Icons */}
