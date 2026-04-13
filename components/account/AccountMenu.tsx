@@ -169,7 +169,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 {/* Email */}
                 <a
                     href="mailto:Trendhair@info.com"
-                    className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer block"
+                    className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
@@ -183,7 +183,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 {/* Phone */}
                 <a
                     href="tel:+96554647655"
-                    className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer block"
+                    className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-app-bg rounded-2xl text-app-gold">
