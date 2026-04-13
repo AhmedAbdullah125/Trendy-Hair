@@ -28,7 +28,49 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
     onOpenCart
 }) => {
     const [showAbout, setShowAbout] = useState(false);
+    const [selectedLink, setSelectedLink] = useState<string | null>(null);
 
+    const handleCopyLink = async (url: string) => {
+        try {
+            await navigator.clipboard.writeText(url);
+            alert('تم نسخ الرابط بنجاح');
+            setSelectedLink(null);
+        } catch (err) {
+            console.error('Failed to copy', err);
+        }
+    };
+
+    const handleOpenChrome = (url: string) => {
+        const noProtocolUrl = url.replace(/^https?:\/\//, '');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        
+        if (isIOS) {
+            window.location.href = `googlechromes://${noProtocolUrl}`;
+        } else {
+            // Android intent
+            window.location.href = `intent://${noProtocolUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+        }
+        setSelectedLink(null);
+    };
+
+    const openInBrowser = (url: string) => {
+        try {
+            // Some mobile wrappers inject a native interface 
+            if ((window as any).ReactNativeWebView) {
+                (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: 'openUrl', url }));
+                setSelectedLink(null);
+                return;
+            }
+            
+            // Try explicit external targets
+            const win = window.open(url, '_system') || window.open(url, '_blank');
+            if (win) { win.opener = null; }
+            else { window.location.href = url; }
+        } catch (e) {
+            window.location.href = url;
+        }
+        setSelectedLink(null);
+    };
 
     return (
         <div className="animate-fadeIn">
@@ -55,10 +97,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                     <div className="flex flex-col text-right">
                         <span className="font-bold text-lg text-app-text">{currentUser.name}</span>
                         <span className="text-sm text-app-textSec font-medium" dir="ltr">{currentUser.phone}</span>
-                        <button
-                            onClick={() => navigate('/account/edit')}
-                            className="flex items-center gap-1 text-[10px] font-bold text-app-gold mt-1 hover:text-app-goldDark transition-colors w-fit"
-                        >
+                        <button onClick={() => navigate('/account/edit')} className="flex items-center gap-1 text-[10px] font-bold text-app-gold mt-1 hover:text-app-goldDark transition-colors w-fit">
                             <Edit2 size={12} />
                             <span>تعديل الحساب</span>
                         </button>
@@ -66,10 +105,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 </div>
 
                 <div className="flex flex-col items-end gap-1">
-                    <button
-                        onClick={onLogout}
-                        className="flex items-center gap-2 text-red-500 font-bold text-sm hover:bg-red-50 px-4 py-2 rounded-2xl transition-all active:scale-95"
-                    >
+                    <button onClick={onLogout} className="flex items-center gap-2 text-red-500 font-bold text-sm hover:bg-red-50 px-4 py-2 rounded-2xl transition-all active:scale-95">
                         <span className="mt-0.5">تسجيل الخروج</span>
                         <XCircle size={22} className="text-red-500" />
                     </button>
@@ -173,7 +209,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 </div>
 
                 {/* Email */}
-                <div 
+                <div
                     onClick={() => window.location.href = "mailto:Trendhair@info.com"}
                     className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer"
                 >
@@ -187,7 +223,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 </div>
 
                 {/* Phone */}
-                <div 
+                <div
                     onClick={() => window.location.href = "tel:+96554647655"}
                     className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer"
                 >
@@ -203,30 +239,24 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
 
             {/* Social Icons */}
             <div className="flex justify-center items-center gap-8 mb-4">
-                <a
-                    href="https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <button
+                    onClick={() => setSelectedLink('https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1')}
                     className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg"
                 >
                     <Music2 size={26} />
-                </a>
-                <a
-                    href="https://www.instagram.com/trandyhair"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                </button>
+                <button
+                    onClick={() => setSelectedLink('https://www.instagram.com/trandyhair')}
                     className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg"
                 >
                     <Instagram size={26} />
-                </a>
-                <a
-                    href="https://www.snapchat.com/@trandyhairnoor?src=QR_CODE"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                </button>
+                <button
+                    onClick={() => setSelectedLink('https://www.snapchat.com/@trandyhairnoor?src=QR_CODE')}
                     className="w-14 h-14 rounded-full bg-white shadow-md border border-app-card/30 flex items-center justify-center text-app-text active:scale-90 transition-all hover:bg-app-bg"
                 >
                     <Ghost size={26} fill="currentColor" />
-                </a>
+                </button>
             </div>
 
             {/* About Modal */}
@@ -264,6 +294,52 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                             <p className="text-sm text-app-textSec leading-relaxed">
                                 تسوقي بثقة مع ضمان الجودة وخدمة توصيل سريعة لجميع مناطق الكويت.
                             </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Link Browser Modal */}
+            {selectedLink && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+                    onClick={() => setSelectedLink(null)}
+                >
+                    <div
+                        className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl font-alexandria animate-fadeIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-app-text">فتح الرابط عبر...</h3>
+                            <button
+                                onClick={() => setSelectedLink(null)}
+                                className="p-1.5 rounded-full bg-app-bg text-app-textSec hover:bg-red-50 hover:text-red-500 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => handleOpenChrome(selectedLink)}
+                                className="w-full bg-white border border-app-card/50 shadow-sm rounded-2xl py-4 font-bold text-gray-700 active:bg-gray-50 transition-colors"
+                            >
+                                Google Chrome
+                            </button>
+                            
+                            <button
+                                onClick={() => openInBrowser(selectedLink)}
+                                className="w-full bg-white border border-app-card/50 shadow-sm rounded-2xl py-4 font-bold text-app-textSec active:bg-gray-50 transition-colors"
+                            >
+                                المتصفح الافتراضي / التطبيق
+                            </button>
+                            
+                            <button
+                                onClick={() => handleCopyLink(selectedLink)}
+                                className="w-full bg-app-gold/10 text-app-gold rounded-2xl py-4 font-bold active:bg-app-gold/20 transition-colors"
+                            >
+                                نسخ الرابط
+                            </button>
                         </div>
                     </div>
                 </div>
