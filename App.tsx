@@ -11,6 +11,7 @@ import HomeTab from './components/home/HomeTab';
 import AllProductsPage from './components/AllProductsPage';
 import BrandPage from './components/BrandPage';
 import AuthScreen from './components/AuthScreen';
+import SuccessStep from './components/cart/SuccessStep';
 import { TabId, Product } from './types';
 import { Check } from 'lucide-react';
 import { STORAGE_KEYS, POINTS_EARNED_PER_KD } from './constants';
@@ -43,6 +44,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [favourites, setFavourites] = useState<number[]>([]);
   const [pendingOrderDetailsId, setPendingOrderDetailsId] = useState<string | null>(null);
+  const [paymentSuccessData, setPaymentSuccessData] = useState<{ orderId: string } | null>(null);
 
   // --- WALLET STATE ---
   const [gameBalance, setGameBalance] = useState<number>(30);
@@ -87,6 +89,16 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
 
     const savedLoyalty = localStorage.getItem(STORAGE_KEYS.WALLET_LOYALTY);
     if (savedLoyalty) setLoyaltyPoints(parseInt(savedLoyalty));
+
+    // Check for payment success parameters in URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const orderId = searchParams.get('orderId');
+    const status = searchParams.get('status');
+    const paymentStatus = searchParams.get('paymentStatus');
+
+    if (orderId && status === 'success' && paymentStatus === 'paid') {
+      setPaymentSuccessData({ orderId });
+    }
   }, []);
 
   // Handle toast auto-hide
@@ -219,6 +231,27 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     navigate('/account');
     setIsCartOpen(false);
   };
+
+  if (paymentSuccessData) {
+    return (
+      <div className="w-full bg-[#F7F4EE] min-h-screen relative shadow-2xl flex flex-col overflow-hidden">
+        <SuccessStep
+          lastOrderId={paymentSuccessData.orderId}
+          onClose={() => {
+            setPaymentSuccessData(null);
+            // Optional: clean up the URL to remove the query params
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            navigate('/');
+          }}
+          onViewOrderDetails={(id) => {
+            setPaymentSuccessData(null);
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            handleViewOrderDetails(id);
+          }}
+        />
+      </div>
+    );
+  }
 
   if (isCartOpen) {
     return (

@@ -274,8 +274,10 @@ const DetailsStep: React.FC<Props> = ({
                     <div className="space-y-3">
                         <button
                             onClick={() => setPaymentMethod("visa")}
-                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "visa" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
-                                }`}
+                            disabled={isProcessing}
+                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                paymentMethod === "visa" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                                } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                             <div className="flex items-center gap-3">
                                 <CreditCard className={paymentMethod === "visa" ? "text-app-gold" : "text-app-textSec"} />
@@ -288,8 +290,10 @@ const DetailsStep: React.FC<Props> = ({
 
                         <button
                             onClick={() => setPaymentMethod("knet")}
-                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "knet" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
-                                }`}
+                            disabled={isProcessing}
+                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                paymentMethod === "knet" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                                } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                             <div className="flex items-center gap-3">
                                 <Wallet className={paymentMethod === "knet" ? "text-app-gold" : "text-app-textSec"} />
@@ -302,8 +306,10 @@ const DetailsStep: React.FC<Props> = ({
 
                         <button
                             onClick={() => setPaymentMethod("cash")}
-                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${paymentMethod === "cash" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
-                                }`}
+                            disabled={isProcessing}
+                            className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                paymentMethod === "cash" ? "border-app-gold bg-app-gold/5" : "border-white bg-app-bg"
+                                } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                             <div className="flex items-center gap-3">
                                 <Banknote className={paymentMethod === "cash" ? "text-app-gold" : "text-app-textSec"} />
