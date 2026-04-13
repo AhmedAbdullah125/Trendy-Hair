@@ -389,7 +389,7 @@ const App: React.FC = () => {
   return (
     <DataProvider>
       <Router>
-        <Toaster position="top-center" expand={false} richColors />
+        <Toaster position="bottom-center" expand={false} richColors />
         {isAuthenticated ? (
           <AppContent onLogout={handleLogout} />
         ) : (
