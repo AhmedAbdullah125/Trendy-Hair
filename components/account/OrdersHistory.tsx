@@ -46,6 +46,8 @@ const OrdersHistory: React.FC<OrdersHistoryProps> = ({ onNavigateToHome, navigat
                 return 'قيد الانتظار';
             case 'confirmed':
                 return 'مؤكد';
+            case 'processing':
+                return 'قيد المعالجة';
             case 'completed':
                 return 'مكتمل';
             case 'cancelled':

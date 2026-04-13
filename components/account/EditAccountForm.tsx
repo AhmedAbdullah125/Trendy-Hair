@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, User, Phone, Mail, Edit2, Save, CheckCircle2 } from 'lucide-react';
 import { useUpdateProfile } from '../requests/updateProfile';
+import { PhoneInput } from 'react-international-phone';
+import 'react-international-phone/style.css';
 
 interface EditAccountFormProps {
     currentUser: {
@@ -21,6 +23,13 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [successMsg, setSuccessMsg] = useState('');
+    
+    // Sync state with currentUser when it changes (e.g., after initial fetch)
+    useEffect(() => {
+        if (currentUser.name && !name) setName(currentUser.name);
+        if (currentUser.phone && !phone) setPhone(currentUser.phone);
+        if (currentUser.email && !email) setEmail(currentUser.email);
+    }, [currentUser]);
 
     const { mutate: updateProfile, isPending: isLoading } = useUpdateProfile(lang);
 
@@ -73,7 +82,9 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
         }
 
         // Prepare update data
-        const updateData: any = { name, phone };
+        // Clean phone number: remove spaces, dashes, parentheses but keep +
+        const cleanedPhone = phone.replace(/[\s\(\)-]/g, '');
+        const updateData: any = { name, phone: cleanedPhone };
         if (email.trim()) updateData.email = email;
         if (photoFile) updateData.photo = photoFile;
 
@@ -154,18 +165,21 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
 
                 {/* Phone */}
                 <div>
-                    <label className="block text-sm font-bold text-app-text mb-2">رقم الهاتف</label>
-                    <div className="relative">
-                        <input
-                            type="tel"
+                    <label className="block text-sm font-bold text-app-text mb-2 text-start">رقم الهاتف</label>
+                    <div className="relative phone-input-wrapper" dir="ltr">
+                        <PhoneInput
+                            defaultCountry="kw"
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className={`w-full p-4 bg-white border rounded-2xl outline-none focus:border-app-gold text-right pr-12 text-app-text font-medium ${errors.phone ? 'border-red-500' : 'border-app-card'}`}
-                            dir="ltr"
+                            onChange={(v) => setPhone(v)}
+                            inputClassName={`!w-full !p-4 !bg-white !border !rounded-2xl !outline-none !focus:border-app-gold !text-left !pl-[60px] !text-app-text !font-medium !h-auto ${errors.phone ? '!border-red-500' : '!border-app-card'}`}
+                            countrySelectorStyleProps={{
+                                buttonClassName: "!border-none !bg-transparent !absolute !left-0 !top-1/2 !-translate-y-1/2 !z-10 !h-full !flex !items-center !justify-center !px-3",
+                                flagClassName: "!m-0 w-12 shrink-0 me-2 ms-2",
+                            }}
+                            className="w-full"
                         />
-                        <Phone className="absolute right-4 top-1/2 -translate-y-1/2 text-app-textSec" size={20} />
                     </div>
-                    {errors.phone && <p className="text-red-500 text-xs mt-1 font-bold">{errors.phone}</p>}
+                    {errors.phone && <p className="text-red-500 text-xs mt-1 font-bold text-start">{errors.phone}</p>}
                 </div>
 
                 {/* Email (Optional) */}

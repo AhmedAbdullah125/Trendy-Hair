@@ -38,11 +38,17 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     const activeCategory = useMemo(() => categoryName || null, [categoryName]);
 
     // API
-    const { data: apiCategories } = useGetCategories("ar");
-    const { data: homeData } = useGetHomeData("ar");
+    const { data: apiCategories, isLoading: categoriesLoading } = useGetCategories("ar");
+    const { data: homeData, isLoading: homeLoading } = useGetHomeData("ar");
     const { data: categoryProductsData, isLoading: categoryLoading, error: categoryError } = useGetProductsByCategory("ar", categoryPage, categoryId || "");
-    const { data: apiProduct } = useGetProduct("ar", productId || "");
+    const { data: apiProduct, isLoading: productLoading } = useGetProduct("ar", productId || "");
     const { data: cartData } = useGetCart("ar");
+
+    const isInitialLoading = useMemo(() => {
+        if (productId) return productLoading;
+        if (activeCategory) return categoryLoading;
+        return homeLoading || categoriesLoading;
+    }, [productId, activeCategory, productLoading, categoryLoading, homeLoading, categoriesLoading]);
 
     // Mappings
     const categories = useMemo(() => {
@@ -169,7 +175,11 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
             <HomeHeader cartCount={cartCount} onOpenCart={onOpenCart} onToggleMenu={toggleMenu} onTitleClick={() => navigate("/")} />
 
             <main className="flex-1 overflow-y-auto w-full pb-28">
-                {selectedProduct ? (
+                {isInitialLoading ? (
+                    <div className="h-full flex items-center justify-center">
+                        <div className="w-10 h-10 border-4 border-app-gold/20 border-t-app-gold rounded-full animate-spin" />
+                    </div>
+                ) : selectedProduct ? (
                     <ProductDetailsView
                         product={selectedProduct}
                         quantity={quantity}
@@ -194,7 +204,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
                     />
                 ) : (
                     <CategoryProductsGrid
-                        title={activeCategory}
+                        title={activeCategory ?? ""}
                         products={categoryProducts}
                         loading={categoryLoading}
                         error={!!categoryError}
