@@ -25,15 +25,33 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ navigate }) => {
 
     // Get status badge color
     const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
+        const s = status?.toLowerCase();
+        switch (s) {
             case 'pending':
+            case 'قيد الانتظار':
                 return 'bg-yellow-50 text-yellow-600';
             case 'confirmed':
+            case 'مؤكد':
                 return 'bg-blue-50 text-blue-600';
+            case 'processing':
+            case 'قيد التجهيز':
+            case 'قيد المعالجة':
+                return 'bg-amber-50 text-amber-600';
+            case 'shipped':
+            case 'تم الشحن':
+                return 'bg-purple-50 text-purple-600';
+            case 'delivered':
+            case 'تم التسليم':
+                return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
             case 'completed':
+            case 'مكتمل':
                 return 'bg-green-50 text-green-600';
             case 'cancelled':
+            case 'ملغي':
                 return 'bg-red-50 text-red-600';
+            case 'refunded':
+            case 'مسترد':
+                return 'bg-gray-100 text-gray-600';
             default:
                 return 'bg-gray-50 text-gray-600';
         }
@@ -41,15 +59,24 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ navigate }) => {
 
     // Get status label in Arabic
     const getStatusLabel = (status: string) => {
-        switch (status.toLowerCase()) {
+        const s = status?.toLowerCase();
+        switch (s) {
             case 'pending':
                 return 'قيد الانتظار';
             case 'confirmed':
                 return 'مؤكد';
-            case 'completed':
-                return 'مكتمل';
+            case 'processing':
+                return 'قيد التجهيز';
+            case 'shipped':
+                return 'تم الشحن';
+            case 'delivered':
+                return 'تم التسليم';
             case 'cancelled':
                 return 'ملغي';
+            case 'refunded':
+                return 'مسترد';
+            case 'completed':
+                return 'مكتمل';
             default:
                 return status;
         }
@@ -210,9 +237,11 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ navigate }) => {
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-app-textSec">حالة الدفع:</span>
-                                <span className={`font-bold ${orderData.payment_status === 'paid' ? 'text-green-600' : 'text-yellow-600'
+                                <span className={`font-bold ${
+                                    (orderData.payment_status === 'paid' || orderData.payment_status === 'مدفوع') 
+                                    ? 'text-green-600' : 'text-yellow-600'
                                     }`}>
-                                    {orderData.payment_status === 'paid' ? 'مدفوع' : 'قيد الانتظار'}
+                                    {(orderData.payment_status === 'paid' || orderData.payment_status === 'مدفوع') ? 'مدفوع' : 'قيد الانتظار'}
                                 </span>
                             </div>
                         </div>
