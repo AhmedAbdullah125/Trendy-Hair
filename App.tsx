@@ -227,8 +227,8 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   };
 
   const handleViewOrderDetails = (orderId: string) => {
-    setPendingOrderDetailsId(orderId);
-    navigate('/account');
+    setPendingOrderDetailsId(null);
+    navigate(`/account/order/${orderId}`);
     setIsCartOpen(false);
   };
 
