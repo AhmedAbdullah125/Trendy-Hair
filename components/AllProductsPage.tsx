@@ -62,7 +62,7 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
       <header className="sticky top-0 z-30 flex flex-col gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors flex-shrink-0"
           >
             <ArrowRight size={20} />
