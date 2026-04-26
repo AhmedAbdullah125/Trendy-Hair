@@ -171,7 +171,7 @@ const OrdersHistory: React.FC<OrdersHistoryProps> = ({ onNavigateToHome, navigat
                 </div>
             ) : (
                 <div className="space-y-4 pb-10">
-                    {orders.map((order: any) => (
+                    {orders?.map((order: any) => (
                         <div
                             key={order.id}
                             className="bg-white rounded-[2rem] p-6 shadow-sm border border-app-card/30"

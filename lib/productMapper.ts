@@ -45,10 +45,10 @@ export const mapApiProductToComponent = (apiProduct: ApiProduct): Product => {
             ? `${apiProduct.price.toFixed(3)} د.ك`
             : undefined,
         image: apiProduct.main_image,
-        categoryId: apiProduct.category.id.toString(),
-        categoryName: apiProduct.category.name,
-        brandId: apiProduct.brand.id.toString(),
-        brandName: apiProduct.brand.name,
+        categoryId: apiProduct.category?.id?.toString(),
+        categoryName: apiProduct.category?.name,
+        brandId: apiProduct.brand?.id?.toString(),
+        brandName: apiProduct.brand?.name,
         isNew: apiProduct.is_recently,
         isFeatured: false, // Not provided by API
         isActive: apiProduct.is_active,
