@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { Product } from '../types';
 import { useGetProducts } from './requests/useGetProductsWithSearch';
 import { mapApiProductsToComponent } from '../lib/productMapper';
@@ -18,16 +18,39 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
   onToggleFavourite
 }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
+  
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setCurrentPage(1);
+      
+      if (searchInput) {
+        setSearchParams({ search: searchInput });
+      } else {
+        setSearchParams({});
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput, setSearchParams]);
 
   // Fetch products from API
-  const { data: productsData, isLoading, error } = useGetProducts('ar', currentPage, '', false);
+  const { data: productsData, isLoading, error } = useGetProducts('ar', currentPage, debouncedSearch, false);
+
+  const productsRaw = productsData?.items?.products;
+  const pagination = productsData?.items?.pagination;
 
   // Transform API products to component format
   const products = useMemo(() => {
-    if (!productsData?.products) return [];
-    return mapApiProductsToComponent(productsData.products);
-  }, [productsData]);
+    if (!Array.isArray(productsRaw)) return [];
+    return mapApiProductsToComponent(productsRaw);
+  }, [productsRaw]);
 
   const handleProductClick = (product: Product) => {
     navigate(`/product/${product.id}`);
@@ -36,17 +59,39 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-app-bg relative font-alexandria overflow-hidden">
-      {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors flex-shrink-0"
-        >
-          <ArrowRight size={20} />
-        </button>
-        <h1 className="text-xl font-bold text-app-text flex-1 truncate text-right">
-          جميع المنتجات
-        </h1>
+      <header className="sticky top-0 z-30 flex flex-col gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors flex-shrink-0"
+          >
+            <ArrowRight size={20} />
+          </button>
+          <h1 className="text-xl font-bold text-app-text flex-1 truncate text-right">
+            جميع المنتجات
+          </h1>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="relative w-full">
+          <input
+            type="text"
+            placeholder="البحث في جميع المنتجات..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full bg-white border border-app-card rounded-full py-3 pr-6 pl-12 text-right focus:outline-none focus:border-app-gold shadow-sm font-alexandria text-sm"
+          />
+          {searchInput ? (
+            <button 
+              onClick={() => setSearchInput('')}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec hover:text-app-text transition-colors"
+            >
+              <X size={18} />
+            </button>
+          ) : (
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec" size={18} />
+          )}
+        </div>
       </header>
 
       {/* Content */}
@@ -79,7 +124,7 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
             </div>
 
             {/* Pagination Controls */}
-            {productsData && productsData.pagination.total_pages > 1 && (
+            {pagination && pagination.total_pages > 1 && (
               <div className="flex items-center justify-center gap-3 mt-8 mb-4">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -91,13 +136,13 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
 
                 <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
                   <span className="text-sm font-medium text-app-text">
-                    صفحة {currentPage} من {productsData.pagination.total_pages}
+                    صفحة {currentPage} من {pagination.total_pages}
                   </span>
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(productsData.pagination.total_pages, prev + 1))}
-                  disabled={currentPage === productsData.pagination.total_pages}
+                  onClick={() => setCurrentPage(prev => Math.min(pagination.total_pages, prev + 1))}
+                  disabled={currentPage === pagination.total_pages}
                   className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft size={20} />

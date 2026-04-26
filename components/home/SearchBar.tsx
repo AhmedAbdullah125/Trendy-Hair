@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ChevronLeft, Search, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Product } from "../../types";
 import { useGetProducts } from "../requests/useGetProductsWithSearch";
 import { mapApiProductsToComponent } from "../../lib/productMapper";
@@ -12,8 +13,8 @@ const SearchBar: React.FC<Props> = ({ onProductClick }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [debounced, setDebounced] = useState("");
     const [show, setShow] = useState(false);
-    const [page, setPage] = useState(1);
     const ref = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const t = setTimeout(() => setDebounced(searchQuery), 500);
@@ -21,10 +22,8 @@ const SearchBar: React.FC<Props> = ({ onProductClick }) => {
     }, [searchQuery]);
 
     useEffect(() => {
-        if (debounced.length >= 2) {
-            setShow(true);
-            setPage(1);
-        } else setShow(false);
+        if (debounced.length >= 2) setShow(true);
+        else setShow(false);
     }, [debounced]);
 
     useEffect(() => {
@@ -35,12 +34,15 @@ const SearchBar: React.FC<Props> = ({ onProductClick }) => {
         return () => document.removeEventListener("mousedown", onDown);
     }, [show]);
 
-    const { data, isLoading } = useGetProducts("ar", page, debounced, false);
+    const { data, isLoading } = useGetProducts("ar", 1, debounced, false, { enabled: !!debounced });
+
+    const products = data?.items?.products;
+    const pagination = data?.items?.pagination;
 
     const results = useMemo(() => {
-        if (!data?.products || !debounced) return [];
-        return mapApiProductsToComponent(data.products);
-    }, [data, debounced]);
+        if (!Array.isArray(products) || !debounced) return [];
+        return mapApiProductsToComponent(products);
+    }, [products, debounced]);
 
     const clear = () => {
         setSearchQuery("");
@@ -91,26 +93,16 @@ const SearchBar: React.FC<Props> = ({ onProductClick }) => {
                                     </button>
                                 ))}
 
-                                {data && data.pagination.total_pages > 1 && (
-                                    <div className="flex items-center justify-center gap-3 py-3 px-4 border-t border-app-card/30">
+                                {pagination && pagination.total_pages > 1 && (
+                                    <div className="px-4 py-3 border-t border-app-card/30">
                                         <button
-                                            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                                            disabled={page === 1}
-                                            className="p-1.5 bg-app-bg rounded-full text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                            onClick={() => {
+                                                setShow(false);
+                                                navigate(`/products?search=${encodeURIComponent(debounced)}`);
+                                            }}
+                                            className="w-full py-2.5 rounded-xl bg-app-gold/10 text-app-gold text-sm font-semibold font-alexandria hover:bg-app-gold/20 transition-colors"
                                         >
-                                            <ChevronRight size={18} />
-                                        </button>
-
-                                        <span className="text-xs font-medium text-app-textSec">
-                                            صفحة {page} من {data.pagination.total_pages}
-                                        </span>
-
-                                        <button
-                                            onClick={() => setPage((prev) => Math.min(data.pagination.total_pages, prev + 1))}
-                                            disabled={page === data.pagination.total_pages}
-                                            className="p-1.5 bg-app-bg rounded-full text-app-text hover:bg-app-card transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                        >
-                                            <ChevronLeft size={18} />
+                                            عرض جميع النتائج ({pagination.total_items})
                                         </button>
                                     </div>
                                 )}
