@@ -21,6 +21,36 @@ interface Props {
     onOpenCart?: () => void;
 }
 
+const formatDescription = (desc: string) => {
+    if (!desc) return "";
+
+    // 1. Remove leaked CSS rules (e.g. .prod-card{...} and .prod-table th{...})
+    let formatted = desc.replace(/(?:\.[a-zA-Z0-9_-]+[^{]*\{[^}]+\}\s*)+/g, "");
+
+    // 2. Add newlines before bullets if they are stuck together
+    formatted = formatted.replace(/•/g, "\n• ");
+
+    // 3. Check if it already contains meaningful HTML tags
+    const hasHTML = /<(p|div|br|ul|li|strong|b|span|table)[^>]*>/i.test(formatted);
+
+    if (!hasHTML) {
+        // Format known section headers to be bold
+        const headers = ["النوع", "المحتويات", "المناسب", "الوصف", "الفوائد", "المكونات الفعالة", "طريقة الاستخدام", "ملاحظة", "ملاحظه"];
+        headers.forEach((header) => {
+            const regex = new RegExp(`(?:^|\\n)\\s*${header}\\s*(?:\\n|$)`, "g");
+            formatted = formatted.replace(regex, `\n\n<strong class="text-app-text text-base mt-4 mb-1 block">${header}</strong>\n`);
+        });
+
+        // Convert newlines to <br/>
+        formatted = formatted.replace(/\n/g, "<br/>");
+
+        // Clean up excessive <br/> tags
+        formatted = formatted.replace(/(<br\/>\s*){3,}/g, "<br/><br/>");
+    }
+
+    return formatted;
+};
+
 const ProductDetailsView: React.FC<Props> = ({
     product,
     quantity,
@@ -114,6 +144,10 @@ const ProductDetailsView: React.FC<Props> = ({
         );
     };
 
+    const formattedDescription = useMemo(() => {
+        return formatDescription((product as any).description);
+    }, [(product as any).description]);
+
     return (
         <div className="animate-fadeIn pt-4">
             <div className="px-6 mb-4">
@@ -137,7 +171,12 @@ const ProductDetailsView: React.FC<Props> = ({
             </div>
 
             <div className="px-8 mb-4">
-                <h2 className="text-2xl font-bold text-app-text font-alexandria leading-tight">
+                {((product as any).category?.name || product.categoryName) && (
+                    <span className="inline-block px-3 py-1 bg-app-card/30 text-app-gold text-xs font-bold rounded-full mb-3">
+                        {(product as any).category?.name || product.categoryName}
+                    </span>
+                )}
+                <h2 className="text-xl font-semibold text-app-text font-alexandria leading-tight">
                     {product.name}
                 </h2>
 
@@ -170,9 +209,16 @@ const ProductDetailsView: React.FC<Props> = ({
 
             <div className="px-8 mb-8">
                 <h3 className="text-sm font-bold text-app-text mb-2">{lang === "ar" ? "الوصف" : "Description"}</h3>
-                <p className="text-sm text-app-textSec leading-relaxed">
-                    {(product as any).description || (lang === "ar" ? "لا يوجد وصف متوفر لهذا المنتج حالياً." : "No description available.")}
-                </p>
+                {formattedDescription ? (
+                    <div
+                        className="text-sm text-app-textSec leading-relaxed [&>style]:hidden"
+                        dangerouslySetInnerHTML={{ __html: formattedDescription }}
+                    />
+                ) : (
+                    <p className="text-sm text-app-textSec leading-relaxed">
+                        {lang === "ar" ? "لا يوجد وصف متوفر لهذا المنتج حالياً." : "No description available."}
+                    </p>
+                )}
             </div>
 
             <div className="px-8 mb-8">
