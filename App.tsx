@@ -399,11 +399,13 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     // Check customer authentication
     const session = Cookies.get('token');
     if (session) setIsAuthenticated(true);
+    setIsInitializing(false);
   }, []);
 
   const handleLoginSuccess = () => {
@@ -418,6 +420,14 @@ const App: React.FC = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('user');
   };
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-[#F7F4EE] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-app-gold/30 border-t-app-gold rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <DataProvider>
