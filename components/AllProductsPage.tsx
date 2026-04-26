@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Search, X, PackageSearch } from 'lucide-react';
 import { Product } from '../types';
 import { useGetProducts } from './requests/useGetProductsWithSearch';
 import { mapApiProductsToComponent } from '../lib/productMapper';
@@ -105,8 +105,16 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
             <div className="text-red-500">حدث خطأ أثناء تحميل المنتجات</div>
           </div>
         ) : products.length === 0 ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-app-textSec">لا توجد منتجات متاحة حالياً</div>
+          <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
+            <div className="w-24 h-24 bg-app-card/30 rounded-full flex items-center justify-center mb-6">
+              <PackageSearch size={48} className="text-app-textSec/50" />
+            </div>
+            <h3 className="text-xl font-bold text-app-text mb-2">لا توجد منتجات</h3>
+            <p className="text-app-textSec max-w-[250px]">
+              {debouncedSearch 
+                ? `لم نتمكن من العثور على نتائج تطابق "${debouncedSearch}"` 
+                : "عذراً، لا توجد منتجات متاحة في الوقت الحالي"}
+            </p>
           </div>
         ) : (
           <>
