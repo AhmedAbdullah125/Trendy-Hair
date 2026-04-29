@@ -223,7 +223,6 @@ const CartFlow: React.FC<CartFlowProps> = ({
             <SuccessStep
                 lastOrderId={lastOrderId}
                 onClose={onClose}
-                onViewOrderDetails={onViewOrderDetails}
             />
         );
     }

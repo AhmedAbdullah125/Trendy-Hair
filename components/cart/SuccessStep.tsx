@@ -1,13 +1,14 @@
 import React from "react";
 import { CheckCircle2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
     lastOrderId: string;
     onClose: () => void;
-    onViewOrderDetails: (orderId: string) => void;
 };
 
-const SuccessStep: React.FC<Props> = ({ lastOrderId, onClose, onViewOrderDetails }) => {
+const SuccessStep: React.FC<Props> = ({ lastOrderId, onClose }) => {
+    const navigate = useNavigate();
     return (
         <div className="flex flex-col h-full items-center justify-center p-8 text-center animate-fadeIn bg-white">
             <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 text-green-500 animate-bounce">
@@ -26,10 +27,13 @@ const SuccessStep: React.FC<Props> = ({ lastOrderId, onClose, onViewOrderDetails
                     الرجوع للرئيسية
                 </button>
                 <button
-                    onClick={() => onViewOrderDetails(lastOrderId)}
+                    onClick={() => {
+                        navigate("/account/history");
+                        onClose();
+                    }}
                     className="w-full text-app-gold font-bold py-4 rounded-2xl active:bg-app-bg transition-colors"
                 >
-                    عرض تفاصيل الطلب
+                    عرض الطلبات
                 </button>
             </div>
         </div>
