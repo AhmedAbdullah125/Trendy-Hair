@@ -62,10 +62,11 @@ const fetchCart = async (lang: string) => {
   return res.data;
 };
 
-export const useGetCart = (lang: string) =>
+export const useGetCart = (lang: string, options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: ["cart", lang],
     queryFn: () => fetchCart(lang),
     staleTime: 1000 * 5,
     gcTime: 1000 * 60 * 30,
+    enabled: options?.enabled ?? true,
   });

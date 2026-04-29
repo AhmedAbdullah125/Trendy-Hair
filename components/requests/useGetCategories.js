@@ -5,16 +5,11 @@ import { API_BASE_URL } from "../../lib/apiConfig";
 import { useQuery } from "@tanstack/react-query";
 
 const fetchCategories = async (lang) => {
-  // const token = Cookies.get("token");
-  console.log(lang);
-
   const formData = new FormData();
   formData.append("slug", "categories");
   const headers = {
     lang: lang,
   };
-
-  // if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await axios.post(`${API_BASE_URL}/v1/lookups`, formData, { headers });
   return response.data.items.categories;

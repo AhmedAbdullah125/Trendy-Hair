@@ -139,7 +139,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </button>
       </div>
 
-      <div className="p-3 pt-2 mt-auto flex items-center justify-between flex-wrap bg-white gap-2">
+      <div className="p-2 mt-auto flex items-center justify-between flex-wrap bg-white gap-2">
         <div className="flex flex-col items-start shrink-0">
           <span className="text-sm font-bold text-app-gold font-alexandria">
             {(product as any).price}
@@ -156,11 +156,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {!cartItem ? (
           <button
             onClick={handleAddToCart}
-            disabled={isBusy}
-            className="bg-app-gold text-white text-[10px] font-bold py-1.5 px-3 rounded-xl active:scale-90 transition-transform flex items-center gap-1 disabled:opacity-60"
+            disabled={isBusy || !(product as any).inStock}
+            className={`${(product as any).inStock ? "bg-app-gold" : "bg-gray-400"
+              } text-white text-[10px] font-bold py-1.5 px-3 rounded-xl active:scale-90 transition-transform flex items-center gap-1 disabled:opacity-60`}
           >
-            <span>أضف</span>
-            <Plus size={12} />
+            <span>{(product as any).inStock ? "أضف" : "نفذت الكمية"}</span>
+            {(product as any).inStock && <Plus size={12} />}
           </button>
         ) : (
           /* ── In cart → Counter + confirm ─────────────────────────── */
@@ -185,7 +186,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {/* Plus */}
             <button
               onClick={handleIncrement}
-              disabled={isBusy}
+              disabled={isBusy || !(product as any).inStock}
               className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
             >
               <Plus size={11} className="text-app-text" />

@@ -41,7 +41,7 @@ const ProductRowSection: React.FC<Props> = ({
 
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
                 {products.map((product) => (
-                    <div key={product.id} className="w-[180px] shrink-0">
+                    <div key={product.id} className="w-[200px] shrink-0">
                         <ProductCard
                             product={product}
                             isFavourite={favourites.includes(product.id)}

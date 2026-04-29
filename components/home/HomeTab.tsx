@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Product } from "../../types";
 import { useData } from "../../context/DataContext";
@@ -9,6 +9,7 @@ import { useGetHomeData } from "../requests/useGetHomeData";
 import { useGetProductsByCategory } from "../requests/useGetProductsByCategory";
 import { useGetProduct } from "../requests/useGetProduct";
 import { useGetCart } from "../requests/useGetCart";
+import { useGetProducts } from "../requests/useGetProductsWithSearch";
 
 import HomeHeader from "./HomeHeader";
 import SideMenuDrawer from "./SideMenuDrawer";
@@ -35,14 +36,14 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     const [quantity, setQuantity] = useState(1);
     const [categoryPage, setCategoryPage] = useState(1);
 
-    const activeCategory = useMemo(() => categoryName || null, [categoryName]);
+    const activeCategory = categoryName ?? null;
 
     // API
     const { data: apiCategories, isLoading: categoriesLoading } = useGetCategories("ar");
     const { data: homeData, isLoading: homeLoading } = useGetHomeData("ar");
     const { data: categoryProductsData, isLoading: categoryLoading, error: categoryError } = useGetProductsByCategory("ar", categoryPage, categoryId || "");
     const { data: apiProduct, isLoading: productLoading } = useGetProduct("ar", productId || "");
-    const { data: cartData } = useGetCart("ar");
+    const { data: cartData } = useGetCart("ar", { enabled: !!productId });
 
     const isInitialLoading = useMemo(() => {
         if (productId) return productLoading;
@@ -82,6 +83,16 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
 
     const recentProducts = useMemo(() => (homeData?.products_recently ? mapApiProductsToComponent(homeData.products_recently) : []), [homeData]);
 
+    // Fallback: if the home API returned no recent products, fetch page 1 of all products
+    const needsFallback = !homeLoading && !!homeData && recentProducts.length === 0;
+    const { data: fallbackProductsData } = useGetProducts("ar", 1, "", false, { enabled: needsFallback });
+    const fallbackProducts = useMemo(() => {
+        if (!fallbackProductsData?.items?.products) return [];
+        return mapApiProductsToComponent(fallbackProductsData.items.products);
+    }, [fallbackProductsData]);
+
+    const finalRecentProducts = recentProducts.length > 0 ? recentProducts : fallbackProducts;
+
     const packages = useMemo(() => {
         if (!homeData?.packages) return [];
         return homeData.packages
@@ -115,48 +126,68 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         } as any as Product;
     }, [apiProduct]);
 
-    const [lastSyncId, setLastSyncId] = useState<number | null>(null);
+    const lastSyncIdRef = useRef<number | null>(null);
 
     // Sync quantity with cart quantity when a product is opened
     useEffect(() => {
         if (selectedProduct && cartData) {
-            if (lastSyncId !== selectedProduct.id) {
+            if (lastSyncIdRef.current !== selectedProduct.id) {
                 const cartItem = cartData.items?.items?.find((item: any) => item.product_id === selectedProduct.id);
                 setQuantity(cartItem ? cartItem.quantity : 1);
-                setLastSyncId(selectedProduct.id);
+                lastSyncIdRef.current = selectedProduct.id;
             }
         }
-    }, [selectedProduct, cartData, lastSyncId]);
+    }, [selectedProduct, cartData]);
 
     // Handlers
-    const toggleMenu = () => setIsMenuOpen((p) => !p);
+    const toggleMenu = useCallback(() => setIsMenuOpen((p) => !p), []);
 
-    const handleCategoryClick = (name: string, id: string) => {
+    const handleCategoryClick = useCallback((name: string, id: string) => {
         navigate(`/category/${encodeURIComponent(name)}?id=${id}`);
         setIsMenuOpen(false);
-    };
+    }, [navigate]);
 
-    const handleProductClick = (p: Product) => {
+    // Adapter for CategoriesRow which passes (id, name) instead of (name, id)
+    const handleCategoryRowClick = useCallback((id: number, name: string) => {
+        handleCategoryClick(name, String(id));
+    }, [handleCategoryClick]);
+
+    const handleProductClick = useCallback((p: Product) => {
         setQuantity(1);
-        setLastSyncId(null);
+        lastSyncIdRef.current = null;
         navigate(`/product/${p.id}`);
-    };
+    }, [navigate]);
 
-    const updateQuantity = (delta: number) => setQuantity((p) => Math.max(1, p + delta));
+    const updateQuantity = useCallback((delta: number) => setQuantity((p) => Math.max(1, p + delta)), []);
 
-    const handleAddAction = () => {
+    const handleAddAction = useCallback(() => {
         if (!selectedProduct) return;
         onAddToCart(selectedProduct, quantity);
         navigate(-1);
-    };
+    }, [selectedProduct, quantity, onAddToCart, navigate]);
 
-    const handleBuyNow = () => {
+    const handleBuyNow = useCallback(() => {
         if (!selectedProduct) return;
         onAddToCart(selectedProduct, quantity);
         onOpenCart();
-    };
+    }, [selectedProduct, quantity, onAddToCart, onOpenCart]);
 
     const totalCategoryPages = categoryProductsData?.pagination?.total_pages || 1;
+
+    const handleAccountClick = useCallback(() => {
+        navigate("/account");
+        toggleMenu();
+    }, [navigate, toggleMenu]);
+
+    const handleTitleClick = useCallback(() => navigate("/"), [navigate]);
+    const handleClickBrand = useCallback((id: number) => navigate(`/brand/${id}`), [navigate]);
+    const handleViewAllRecent = useCallback(() => navigate("/products"), [navigate]);
+    const handleBack = useCallback(() => navigate(-1), [navigate]);
+    const handleBackToHome = useCallback(() => navigate("/"), [navigate]);
+    const handleInc = useCallback(() => updateQuantity(1), [updateQuantity]);
+    const handleDec = useCallback(() => updateQuantity(-1), [updateQuantity]);
+    const handlePrev = useCallback(() => setCategoryPage((p) => Math.max(1, p - 1)), []);
+    const handleNext = useCallback(() => setCategoryPage((p) => Math.min(totalCategoryPages, p + 1)), [totalCategoryPages]);
 
     return (
         <div className="flex flex-col h-[100vh] bg-app-bg relative font-alexandria overflow-hidden">
@@ -165,14 +196,11 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
                 onClose={toggleMenu}
                 categories={activeCategories}
                 onCategoryClick={handleCategoryClick}
-                onAccountClick={() => {
-                    navigate("/account");
-                    toggleMenu();
-                }}
+                onAccountClick={handleAccountClick}
                 techBookingUrl={contentSettings?.techBookingUrl}
             />
 
-            <HomeHeader cartCount={cartCount} onOpenCart={onOpenCart} onToggleMenu={toggleMenu} onTitleClick={() => navigate("/")} />
+            <HomeHeader cartCount={cartCount} onOpenCart={onOpenCart} onToggleMenu={toggleMenu} onTitleClick={handleTitleClick} />
 
             <main className="flex-1 overflow-y-auto w-full pb-28">
                 {isInitialLoading ? (
@@ -183,9 +211,9 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
                     <ProductDetailsView
                         product={selectedProduct}
                         quantity={quantity}
-                        onBack={() => navigate(-1)}
-                        onInc={() => updateQuantity(1)}
-                        onDec={() => updateQuantity(-1)}
+                        onBack={handleBack}
+                        onInc={handleInc}
+                        onDec={handleDec}
                         onAdd={handleAddAction}
                         onBuyNow={handleBuyNow}
                     />
@@ -193,26 +221,28 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
                     <HomeContent
                         banners={banners}
                         brands={brands}
-                        recentProducts={recentProducts}
+                        categories={activeCategories}
+                        onClickCategory={handleCategoryRowClick}
+                        recentProducts={finalRecentProducts}
                         packages={packages}
                         favourites={favourites}
                         onToggleFavourite={onToggleFavourite}
                         onAddToCart={onAddToCart}
                         onProductClick={handleProductClick}
-                        onClickBrand={(id) => navigate(`/brand/${id}`)}
-                        onViewAllRecent={() => navigate("/products")}
+                        onClickBrand={handleClickBrand}
+                        onViewAllRecent={handleViewAllRecent}
                     />
                 ) : (
                     <CategoryProductsGrid
-                        title={activeCategory ?? ""}
+                        title={activeCategory}
                         products={categoryProducts}
                         loading={categoryLoading}
                         error={!!categoryError}
                         page={categoryPage}
                         totalPages={totalCategoryPages}
-                        onBack={() => navigate("/")}
-                        onPrev={() => setCategoryPage((p) => Math.max(1, p - 1))}
-                        onNext={() => setCategoryPage((p) => Math.min(totalCategoryPages, p + 1))}
+                        onBack={handleBackToHome}
+                        onPrev={handlePrev}
+                        onNext={handleNext}
                         favourites={favourites}
                         onToggleFavourite={onToggleFavourite}
                         onAddToCart={onAddToCart}
