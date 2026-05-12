@@ -1,5 +1,5 @@
 'use client';
-import axios from 'axios';
+import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 import Cookies from 'js-cookie';
@@ -18,7 +18,7 @@ async function updateProfileRequest(data, lang) {
     const token = Cookies.get('token');
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const response = await axios.put(url, formData, { headers });
+    const response = await api.put(url, formData, { headers });
     return response.data;
 }
 

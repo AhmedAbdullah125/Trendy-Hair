@@ -1,6 +1,6 @@
 "use client";
 
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/lib/apiConfig";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ export const useAddToCart = () => {
             formData.append("product_id", String(product_id));
             formData.append("quantity", String(quantity));
 
-            const res = await axios.post(`${API_BASE_URL}/v1/cart/add-items`, formData, { headers });
+            const res = await api.post(`${API_BASE_URL}/v1/cart/add-items`, formData, { headers });
             return res.data;
         },
 

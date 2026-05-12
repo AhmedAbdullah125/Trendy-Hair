@@ -1,5 +1,5 @@
 'use client';
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
 import { useQuery } from "@tanstack/react-query";
@@ -15,7 +15,7 @@ const fetchCities = async (lang, governorateId) => {
   formData.append("governorate_id", governorateId);
 
 
-  const response = await axios.post(
+  const response = await api.post(
     `${API_BASE_URL}/v1/lookups`,
     formData,
     { headers }

@@ -1,5 +1,5 @@
 'use client';
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ const fetchHomeData = async (lang) => {
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await axios.post(`${API_BASE_URL}/v1/home`, {}, { headers });
+  const response = await api.post(`${API_BASE_URL}/v1/home`, {}, { headers });
   return response.data.items;
 };
 

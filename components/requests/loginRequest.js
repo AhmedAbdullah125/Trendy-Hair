@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 
@@ -15,7 +15,7 @@ export async function loginRequest(data, setLoading, lang, router) {
     // clear token from cookies
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     try {
-        const response = await axios.post(url, formData, { headers });
+        const response = await api.post(url, formData, { headers });
         const message = response?.data?.message;
 
         setLoading(false)

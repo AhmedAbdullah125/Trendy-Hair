@@ -1,5 +1,5 @@
 'use client';
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +10,7 @@ const fetchProduct = async (lang, productId) => {
   const headers = { lang };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await axios.get(
+  const response = await api.get(
     `${API_BASE_URL}/v1/products/${productId}`,
     { headers }
   );

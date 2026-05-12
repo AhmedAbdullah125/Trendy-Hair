@@ -1,5 +1,5 @@
 'use client';
-import axios from 'axios';
+import api from '@/lib/axiosInstance';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '../../lib/apiConfig';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -21,7 +21,7 @@ const claimReward = async (level) => {
   const formData = new FormData();
   formData.append('level', level);
 
-  const response = await axios.post(
+  const response = await api.post(
     `${API_BASE_URL}/v1/rewards-claim`,
     formData,
     { headers }

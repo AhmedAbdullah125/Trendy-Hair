@@ -1,5 +1,5 @@
 'use client';
-import axios from 'axios';
+import api from '@/lib/axiosInstance';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '../../lib/apiConfig';
 import { useQuery } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ const fetchRandomQuestion = async () => {
   const headers = { lang: 'ar' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await axios.get(`${API_BASE_URL}/v1/questions/random`, { headers });
+  const response = await api.get(`${API_BASE_URL}/v1/questions/random`, { headers });
   const item = response.data?.items;
 
   if (!item) throw new Error('No question returned');

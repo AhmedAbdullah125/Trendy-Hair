@@ -1,5 +1,5 @@
 'use client';
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
 
@@ -15,7 +15,7 @@ export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc
     if (token) headers.Authorization = `Bearer ${token}`;
 
     try {
-        const response = await axios.post(`${API_BASE_URL}/v1/order`, formData, { headers });
+        const response = await api.post(`${API_BASE_URL}/v1/order`, formData, { headers });
         const data = response.data;
         const paymentUrl = data?.items?.payment_url;
         const isOnlinePayment = paymentMethod === 'visa' || paymentMethod === 'knet';

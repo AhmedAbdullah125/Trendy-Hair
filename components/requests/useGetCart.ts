@@ -1,6 +1,6 @@
 "use client";
 
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/lib/apiConfig";
 import { useQuery } from "@tanstack/react-query";
@@ -58,7 +58,7 @@ const fetchCart = async (lang: string) => {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   // ✅ GET بدون FormData
-  const res = await axios.get<CartApiResponse>(`${API_BASE_URL}/v1/cart`, { headers });
+  const res = await api.get<CartApiResponse>(`${API_BASE_URL}/v1/cart`, { headers });
   return res.data;
 };
 

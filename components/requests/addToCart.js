@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 import Cookies from 'js-cookie';
@@ -12,7 +12,7 @@ export async function addToCart(id, quantity, setLoading, lang) {
     formData.append("product_id", id);
     formData.append("quantity", quantity);
     try {
-        const response = await axios.post(url, formData, { headers });
+        const response = await api.post(url, formData, { headers });
         const message = response?.data?.message;
 
         setLoading(false)

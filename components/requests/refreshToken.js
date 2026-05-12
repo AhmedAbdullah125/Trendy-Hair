@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 
@@ -13,7 +13,7 @@ export async function refreshToken(setLoading, lang) {
     formData.append('client_secret', "OF3II6JtC3DIrSk5mNVl0ZaPlkP1P8nI5wrf1tYX");
     const headers = { 'lang': lang }
     try {
-        const response = await axios.post(url, formData, { headers });
+        const response = await api.post(url, formData, { headers });
         const message = response?.data?.message;
 
         setLoading(false)

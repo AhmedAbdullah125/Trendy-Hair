@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 import Cookies from 'js-cookie';
@@ -9,7 +9,7 @@ export async function toggleFavourite(id, setLoading, lang) {
     const token = Cookies.get("token");
     if (token) headers.Authorization = `Bearer ${token}`;
     try {
-        const response = await axios.post(url, {}, { headers });
+        const response = await api.post(url, {}, { headers });
         const message = response?.data?.message;
 
         setLoading(false)

@@ -1,6 +1,6 @@
 "use client";
 
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/lib/apiConfig";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ export const useDeleteCartItem = () => {
             const formData = new FormData();
             if (clear_all) formData.append("clear_all", "true");
 
-            const res = await axios.delete(`${API_BASE_URL}/v1/cart/items/${cartItemId}`, {
+            const res = await api.delete(`${API_BASE_URL}/v1/cart/items/${cartItemId}`, {
                 headers,
                 data: formData,
             });

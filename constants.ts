@@ -243,8 +243,8 @@ export const INITIAL_GAME_SETTINGS: GameSettings = {
   timeLimitSeconds: 20, // Default 20 seconds as requested
   cooldownLossMinutes: 60, // 1 hour
   cooldownWinMinutes: 1440, // 24 hours
-  gameBalanceCap: 40,
-  stageRewards: [10, 20, 40]
+  gameBalanceCap: 30,
+  stageRewards: [10, 20, 30]
 };
 
 export const INITIAL_CONTENT_SETTINGS: ContentSettings = {
