@@ -20,7 +20,7 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
@@ -29,7 +29,7 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput);
       setCurrentPage(1);
-      
+
       if (searchInput) {
         setSearchParams({ search: searchInput });
       } else {
@@ -58,8 +58,8 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
   console.log(productsData);
 
   return (
-    <div className="flex flex-col h-full bg-app-bg relative font-alexandria overflow-hidden">
-      <header className="sticky top-0 z-30 flex flex-col gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
+    <div className="flex pt-20 flex-col h-full bg-app-bg relative font-alexandria overflow-hidden">
+      <header className="fixed w-full top-0 z-30 flex flex-col gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
@@ -71,7 +71,7 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
             جميع المنتجات
           </h1>
         </div>
-        
+
         {/* Search Bar */}
         <div className="relative w-full">
           <input
@@ -82,7 +82,7 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
             className="w-full bg-white border border-app-card rounded-full py-3 pr-6 pl-12 text-right focus:outline-none focus:border-app-gold shadow-sm font-alexandria text-sm"
           />
           {searchInput ? (
-            <button 
+            <button
               onClick={() => setSearchInput('')}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec hover:text-app-text transition-colors"
             >
@@ -111,8 +111,8 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
             </div>
             <h3 className="text-xl font-bold text-app-text mb-2">لا توجد منتجات</h3>
             <p className="text-app-textSec max-w-[250px]">
-              {debouncedSearch 
-                ? `لم نتمكن من العثور على نتائج تطابق "${debouncedSearch}"` 
+              {debouncedSearch
+                ? `لم نتمكن من العثور على نتائج تطابق "${debouncedSearch}"`
                 : "عذراً، لا توجد منتجات متاحة في الوقت الحالي"}
             </p>
           </div>
