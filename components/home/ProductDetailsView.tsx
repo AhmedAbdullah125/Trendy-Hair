@@ -88,7 +88,7 @@ const ProductDetailsView: React.FC<Props> = ({
         isDragging.current = false;
     }, []);
 
-    const onDragEnd = useCallback((clientX: number, total: number, setIdx: (i: number) => void) => {
+    const onDragEnd = useCallback((clientX: number, total: number, setIdx: React.Dispatch<React.SetStateAction<number>>) => {
         if (dragStartX.current === null) return;
         const delta = dragStartX.current - clientX;
         if (Math.abs(delta) > 40) {
