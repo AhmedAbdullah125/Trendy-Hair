@@ -60,6 +60,24 @@
       -webkit-touch-callout: none;
     }
 
+    /* Prevent image drag / long-press selection across the entire app */
+    img {
+      -webkit-user-drag: none;
+      -khtml-user-drag: none;
+      -moz-user-drag: none;
+      -o-user-drag: none;
+      user-drag: none;
+      -webkit-touch-callout: none;
+      pointer-events: none;
+      draggable: false;
+    }
+
+    /* Re-enable pointer events on interactive images (buttons, links containing imgs) */
+    a img,
+    button img {
+      pointer-events: auto;
+    }
+
     /* Hide WebKit scrollbars (iOS Safari / WebView / Chrome) */
     html::-webkit-scrollbar,
     body::-webkit-scrollbar,

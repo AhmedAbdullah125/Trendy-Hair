@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { ArrowRight, Minus, Plus, ShoppingBag } from "lucide-react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
+import { ArrowRight, Minus, Plus, ShoppingBag, ZoomIn, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "../../types";
 import { useAddToCart } from "../requests/useAddToCart";
 import { toast } from "sonner";
@@ -65,6 +65,42 @@ const ProductDetailsView: React.FC<Props> = ({
 }) => {
     const addMut = useAddToCart();
     const loading = addLoading ?? addMut.isPending;
+    const [isViewerOpen, setIsViewerOpen] = useState(false);
+    const [viewerIndex, setViewerIndex] = useState(0);
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    // Build ordered image list: main_image first, then extra images (deduped)
+    const allImages = useMemo(() => {
+        const main = (product as any).main_image ?? (product as any).image ?? '';
+        const extras: string[] = ((product as any).images ?? []).map((img: any) => img.image as string);
+        const seen = new Set<string>();
+        return [main, ...extras].filter(url => { if (!url || seen.has(url)) return false; seen.add(url); return true; });
+    }, [product]);
+
+    const openViewer = (index: number) => { setViewerIndex(index); setIsViewerOpen(true); };
+
+    // --- Swiper drag logic (works for touch + mouse) ---
+    const dragStartX = useRef<number | null>(null);
+    const isDragging = useRef(false);
+
+    const onDragStart = useCallback((clientX: number) => {
+        dragStartX.current = clientX;
+        isDragging.current = false;
+    }, []);
+
+    const onDragEnd = useCallback((clientX: number, total: number, setIdx: (i: number) => void) => {
+        if (dragStartX.current === null) return;
+        const delta = dragStartX.current - clientX;
+        if (Math.abs(delta) > 40) {
+            isDragging.current = true;
+            if (delta > 0) setIdx(i => Math.min(i + 1, total - 1));
+            else setIdx(i => Math.max(i - 1, 0));
+        }
+        dragStartX.current = null;
+    }, []);
+
+    const prevImage = useCallback((e: React.MouseEvent) => { e.stopPropagation(); setViewerIndex(i => (i - 1 + allImages.length) % allImages.length); }, [allImages.length]);
+    const nextImage = useCallback((e: React.MouseEvent) => { e.stopPropagation(); setViewerIndex(i => (i + 1) % allImages.length); }, [allImages.length]);
 
     // ✅ Stock info from API product response
     const stockQty = useMemo(() => {
@@ -160,15 +196,150 @@ const ProductDetailsView: React.FC<Props> = ({
                 </button>
             </div>
 
-            <div className="px-6 mb-6">
-                <div className="w-full md:aspect-[3/1] aspect-[2/1] rounded-[2.5rem] overflow-hidden shadow-md bg-white border border-app-card/30">
-                    <img
-                        src={(product as any).main_image ?? (product as any).image}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                    />
+            {/* ── Swipeable image carousel ── */}
+            <div className="px-6 mb-5">
+                {/* Swiper track */}
+                <div
+                    className="group relative w-full md:aspect-[3/1] aspect-[2/1] rounded-[2.5rem] overflow-hidden shadow-md bg-white border border-app-card/30 cursor-pointer select-none"
+                    /* touch */
+                    onTouchStart={e => onDragStart(e.touches[0].clientX)}
+                    onTouchEnd={e => { onDragEnd(e.changedTouches[0].clientX, allImages.length, setActiveIndex); }}
+                    /* mouse */
+                    onMouseDown={e => onDragStart(e.clientX)}
+                    onMouseUp={e => { onDragEnd(e.clientX, allImages.length, setActiveIndex); }}
+                    onClick={() => { if (!isDragging.current) openViewer(activeIndex); }}
+                >
+                    {/* Slide strip */}
+                    <div
+                        className="flex h-full transition-transform duration-300 ease-out"
+                        style={{ width: `${allImages.length * 100}%`, transform: `translateX(${activeIndex * (100 / allImages.length)}%)` }}
+                    >
+                        {allImages.map((url, idx) => (
+                            <div key={idx} className="h-full flex-shrink-0" style={{ width: `${100 / allImages.length}%` }}>
+                                <img src={url} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Zoom overlay (visible on hover when not dragging) */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all duration-300 flex items-center justify-center pointer-events-none">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg">
+                            <ZoomIn size={22} className="text-app-goldDark" />
+                        </div>
+                    </div>
+
+                    {/* Slide counter badge */}
+                    {allImages.length > 1 && (
+                        <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                            {activeIndex + 1} / {allImages.length}
+                        </div>
+                    )}
                 </div>
+
+                {/* Dot indicators */}
+                {allImages.length > 1 && (
+                    <div className="flex justify-center gap-1.5 mt-3">
+                        {allImages.map((_, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => setActiveIndex(idx)}
+                                style={{ pointerEvents: 'auto' }}
+                                className={`rounded-full transition-all duration-300 ${
+                                    idx === activeIndex ? 'w-6 h-2 bg-app-gold' : 'w-2 h-2 bg-app-card'
+                                }`}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {/* ── Fancy full-screen gallery viewer ── */}
+            {isViewerOpen && (
+                <div
+                    className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center animate-fadeIn"
+                    onClick={() => setIsViewerOpen(false)}
+                    /* touch swipe in viewer */
+                    onTouchStart={e => onDragStart(e.touches[0].clientX)}
+                    onTouchEnd={e => { e.stopPropagation(); onDragEnd(e.changedTouches[0].clientX, allImages.length, setViewerIndex); }}
+                >
+                    {/* Header bar */}
+                    <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-5 pb-3 z-10" onClick={e => e.stopPropagation()}>
+                        <span className="text-white/60 text-sm font-medium">{viewerIndex + 1} / {allImages.length}</span>
+                        <p className="text-white text-sm font-semibold truncate max-w-[55%] text-center">{product.name}</p>
+                        <button
+                            className="bg-white/15 hover:bg-white/25 text-white rounded-full p-2 transition-colors"
+                            onClick={() => setIsViewerOpen(false)}
+                            style={{ pointerEvents: 'auto' }}
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* Prev / Next arrows */}
+                    {allImages.length > 1 && (
+                        <>
+                            <button
+                                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/15 hover:bg-white/25 text-white rounded-full p-2.5 transition-colors"
+                                onClick={prevImage}
+                                style={{ pointerEvents: 'auto' }}
+                            >
+                                <ChevronLeft size={22} />
+                            </button>
+                            <button
+                                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/15 hover:bg-white/25 text-white rounded-full p-2.5 transition-colors"
+                                onClick={nextImage}
+                                style={{ pointerEvents: 'auto' }}
+                            >
+                                <ChevronRight size={22} />
+                            </button>
+                        </>
+                    )}
+
+                    {/* Active image */}
+                    <img
+                        key={viewerIndex}
+                        src={allImages[viewerIndex]}
+                        alt={`${product.name} ${viewerIndex + 1}`}
+                        className="max-w-[92vw] max-h-[75vh] object-contain rounded-2xl shadow-2xl animate-scaleIn"
+                        onClick={e => e.stopPropagation()}
+                        style={{ pointerEvents: 'auto' }}
+                    />
+
+                    {/* Dot indicators + thumbnail strip */}
+                    {allImages.length > 1 && (
+                        <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3" onClick={e => e.stopPropagation()}>
+                            {/* Dots */}
+                            <div className="flex gap-1.5">
+                                {allImages.map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setViewerIndex(idx)}
+                                        style={{ pointerEvents: 'auto' }}
+                                        className={`rounded-full transition-all duration-300 ${
+                                            idx === viewerIndex ? 'w-6 h-2 bg-app-gold' : 'w-2 h-2 bg-white/40'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                            {/* Thumbnail strip */}
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 max-w-full pb-1">
+                                {allImages.map((url, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setViewerIndex(idx)}
+                                        style={{ pointerEvents: 'auto' }}
+                                        className={`flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                                            idx === viewerIndex ? 'border-app-gold scale-110' : 'border-white/20 opacity-50 hover:opacity-80'
+                                        }`}
+                                    >
+                                        <img src={url} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="px-8 mb-4">
                 {((product as any).category?.name || product.categoryName) && (

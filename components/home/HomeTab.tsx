@@ -112,13 +112,22 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     const selectedProduct = useMemo(() => {
         if (!apiProduct) return null;
         return {
+            // Spread everything from the API so no field is dropped (images, main_image, etc.)
+            ...apiProduct,
+            // Normalise the fields ProductDetailsView / Product type expects
             id: apiProduct.id,
             name: apiProduct.name,
             description: apiProduct.description,
             image: apiProduct.main_image,
-            price: apiProduct.current_price,
+            main_image: apiProduct.main_image,
+            images: apiProduct.images ?? [],
+            price: apiProduct.price,
+            current_price: apiProduct.current_price,
+            discounted_price: apiProduct.discounted_price,
+            has_discount: apiProduct.has_discount,
             oldPrice: apiProduct.has_discount ? apiProduct.price : null,
             inStock: apiProduct.in_stock,
+            in_stock: apiProduct.in_stock,
             quantity: apiProduct.quantity,
             brand: apiProduct.brand,
             category: apiProduct.category,
