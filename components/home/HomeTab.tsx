@@ -190,7 +190,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     const handleNext = useCallback(() => setCategoryPage((p) => Math.min(totalCategoryPages, p + 1)), [totalCategoryPages]);
 
     return (
-        <div className="flex flex-col h-[100vh] bg-app-bg relative font-alexandria overflow-hidden">
+        <div className="flex pt-20 flex-col h-[100vh] bg-app-bg relative font-alexandria overflow-hidden">
             <SideMenuDrawer
                 isOpen={isMenuOpen}
                 onClose={toggleMenu}

@@ -10,7 +10,7 @@ interface Props {
 
 const HomeHeader: React.FC<Props> = ({ cartCount, onOpenCart, onToggleMenu, onTitleClick }) => {
     return (
-        <header className="sticky top-0 z-30 flex items-center justify-between px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
+        <header className="fixed w-full top-0 z-30 flex items-center justify-between px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
             <button onClick={onToggleMenu} className="p-2 text-app-text hover:bg-app-card rounded-full transition-colors flex-shrink-0">
                 <Menu size={24} />
             </button>
