@@ -61,9 +61,9 @@ const BrandPage = ({ onAddToCart, favourites, onToggleFavourite }) => {
   /* ========================= UI ========================= */
 
   return (
-    <div className="flex flex-col h-full bg-app-bg relative font-alexandria overflow-hidden">
+    <div className="flex pt-20 flex-col h-full bg-app-bg relative font-alexandria overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30">
+      <header className="fixed w-full top-0 z-30 flex items-center gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30">
         <button
           onClick={() => navigate(-1)}
           className="p-2 bg-white rounded-full shadow-sm"
