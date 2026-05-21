@@ -73,7 +73,7 @@ const SideMenuDrawer: React.FC<Props> = ({
                         </a>
 
                         <a
-                            href="https://maison-de-noor.raiyansoft.net/"
+                            href="https://noorapp.vercel.app/"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center w-full h-10 rounded-2xl bg-transparent text-app-gold border border-app-gold text-center text-sm font-medium transition-all active:scale-[0.98] hover:bg-app-gold/5"
