@@ -224,7 +224,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 className="text-sm text-app-textSec hover:text-app-gold font-medium transition-colors"
                 disabled={isLoading}
               >
-                إذا لديكي حساب <span className="font-bold underline decoration-app-gold/50">سجلي دخولك</span>
+                إذا لديكي حساب <span className="font-bold underline decoration-app-gold/50 text-red-400">سجلي دخولك</span>
               </button>
             ) : (
               <button
@@ -239,7 +239,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 className="text-sm text-app-textSec hover:text-app-gold font-medium transition-colors"
                 disabled={isLoading}
               >
-                ليس لديكي حساب <span className="font-bold underline decoration-app-gold/50">سجلي حساب جديد</span>
+                ليس لديكي حساب <span className="font-bold underline decoration-app-gold/50 text-red-400">سجلي حساب جديد</span>
               </button>
             )}
           </div>
