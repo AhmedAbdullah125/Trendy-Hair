@@ -4,7 +4,7 @@ import { GAME_STAGES, LOCK_DURATION_MS, STORAGE_KEYS } from '../constants';
 import { useGetCompetitionStages } from './requests/useGetCompetitionStages';
 import { useStartStage } from './requests/useStartStage';
 import { useSubmitAttempt } from './requests/useSubmitAttempt';
-import { Trophy, Play, Clock, Lock, CheckCircle2, Timer, AlertCircle, ChevronRight, LogOut, Loader2 } from 'lucide-react';
+import { Trophy, Play, Clock, Lock, CheckCircle2, Timer, AlertCircle, LogOut, Loader2, ChevronLeft } from 'lucide-react';
 import { audioService } from '../services/audioService';
 import GameScreen from './GameScreen';
 import Timeline from './Timeline';
@@ -403,10 +403,10 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
             <p className="text-red-500 font-bold text-xs mb-8">ملاحظة: إذا خسرتي تخسرين كل شيء</p>
             <div className="w-full flex flex-col gap-3">
               <button onClick={handleWithdraw} className="w-full flex items-center justify-center gap-2 bg-white text-app-gold border-2 border-app-gold font-bold py-3.5 rounded-2xl active:bg-gray-50 transition-colors">
-                <span>انسحاب</span><LogOut size={18} />
+                <span>انسحاب</span><LogOut size={18} className='rotate-180' />
               </button>
               <button onClick={onContinue} disabled={isStartingStage} className="w-full flex items-center justify-center gap-2 bg-app-gold text-white font-bold py-4 rounded-2xl shadow-lg shadow-app-gold/30 active:bg-app-goldDark transition-transform active:scale-95 disabled:opacity-60">
-                {isStartingStage ? <Loader2 size={18} className="animate-spin" /> : <><span>أكملي التحدي</span><ChevronRight size={20} /></>}
+                {isStartingStage ? <Loader2 size={18} className="animate-spin" /> : <><span>أكملي التحدي</span><ChevronLeft size={20} /></>}
               </button>
             </div>
           </div>
