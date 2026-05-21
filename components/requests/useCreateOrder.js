@@ -21,14 +21,20 @@ export const createOrder = async (formData, lang = 'ar', setStep, setloading, qc
         const isOnlinePayment = paymentMethod === 'visa' || paymentMethod === 'knet';
 
         if (isOnlinePayment && paymentUrl) {
-            // Invalidate cart before redirecting to payment gateway
-            if (qc) await qc.invalidateQueries({ queryKey: ["cart"] });
+            // Invalidate cart + profile (wallet) before redirecting to payment gateway
+            if (qc) {
+                await qc.invalidateQueries({ queryKey: ["cart"] });
+                await qc.invalidateQueries({ queryKey: ["profile"] });
+            }
             setloading(false);
             window.location.href = paymentUrl;
         } else {
             // Cash: go to success screen
             setStep("success");
-            if (qc) await qc.invalidateQueries({ queryKey: ["cart"] });
+            if (qc) {
+                await qc.invalidateQueries({ queryKey: ["cart"] });
+                await qc.invalidateQueries({ queryKey: ["profile"] });
+            }
             setloading(false);
         }
 

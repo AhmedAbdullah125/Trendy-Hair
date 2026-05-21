@@ -13,7 +13,26 @@ export interface Stage {
   name: string;
   difficulty: 'easy' | 'medium' | 'hard';
   rewardName: string;
+  questionTime?: number;
   questions: Question[];
+}
+
+// API-driven stage question types (from /v1/competition/stages/{id}/start)
+export interface StageAnswer {
+  id: number;
+  name: string;
+}
+
+export interface StageQuestion {
+  id: number;
+  text: string;
+  answers: StageAnswer[];
+}
+
+export interface CollectedAnswer {
+  competition_question_id: number;
+  competition_answer_id: number;
+  time_spent_seconds: number;
 }
 
 export enum GameState {
