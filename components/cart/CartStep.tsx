@@ -51,7 +51,7 @@ const CartItemCounter: React.FC<CounterProps> = ({ item, lang }) => {
                 await addToCart(item.product.id, localQty, setUpdateLoading, lang);
                 await qc.invalidateQueries({ queryKey: ["cart"] });
             }
-        }, 500);
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [localQty, item.quantity, item.id, item.product.id, lang, qc]);

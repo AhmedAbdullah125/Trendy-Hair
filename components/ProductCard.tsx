@@ -99,7 +99,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         await addToCart(product.id, localQty, setUpdateLoading, lang);
         await qc.invalidateQueries({ queryKey: ["cart"] });
       }
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [localQty, cartItem, lang, product.id, qc]);
