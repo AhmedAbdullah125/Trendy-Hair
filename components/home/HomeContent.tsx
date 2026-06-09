@@ -45,7 +45,7 @@ const HomeContent: React.FC<Props> = ({
             <BannerSlider banners={banners} disabled={disableSlider} />
             <BrandsRow brands={brands} onClickBrand={onClickBrand} />
             {/* here */}
-            <CategoriesRow categories={categories} onClickCategory={onClickCategory} />
+            {/* <CategoriesRow categories={categories} onClickCategory={onClickCategory} /> */}
             <ProductRowSection title="وصلنا حديثاً" products={recentProducts} onViewAll={onViewAllRecent} showViewAll {...rowProps} />
 
             {packages.map((pkg) =>
