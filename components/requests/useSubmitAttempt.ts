@@ -2,20 +2,28 @@
 import api from '@/lib/axiosInstance';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '../../lib/apiConfig';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import type {
+  ApiEnvelope,
+  ApiSubmitAttemptData,
+  SubmitAttemptPayload,
+} from '@/lib/apiTypes';
+
+type SubmitAttemptResponse = ApiEnvelope<ApiSubmitAttemptData>;
 
 /**
  * Submits all answers for a stage attempt.
  * POST /v1/competition/attempts/{attemptId}/submit
- *
- * @param {{ attemptId: number, answers: Array<{ competition_question_id, competition_answer_id, time_spent_seconds }> }} payload
  */
-const submitAttempt = async ({ attemptId, answers }) => {
+const submitAttempt = async ({
+  attemptId,
+  answers,
+}: SubmitAttemptPayload): Promise<SubmitAttemptResponse> => {
   const token = Cookies.get('token');
-  const headers = { lang: 'ar' };
+  const headers: Record<string, string> = { lang: 'ar' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await api.post(
+  const response = await api.post<SubmitAttemptResponse>(
     `${API_BASE_URL}/v1/competition/attempts/${attemptId}/submit`,
     { answers },
     { headers }
@@ -23,7 +31,11 @@ const submitAttempt = async ({ attemptId, answers }) => {
   return response.data;
 };
 
-export const useSubmitAttempt = () => {
+export const useSubmitAttempt = (): UseMutationResult<
+  SubmitAttemptResponse,
+  unknown,
+  SubmitAttemptPayload
+> => {
   const queryClient = useQueryClient();
 
   return useMutation({

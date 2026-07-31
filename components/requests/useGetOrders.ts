@@ -2,23 +2,30 @@
 import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import type {
+    ApiEnvelope,
+    ApiOrder,
+    ApiPagination,
+    OrdersQueryParams,
+} from "@/lib/apiTypes";
+
+/** `OrderEloquent::index` returns the rows under `data`, alongside `pagination`. */
+interface OrdersPage {
+    data: ApiOrder[];
+    pagination: ApiPagination;
+}
 
 /**
  * Fetches orders from the API
- * @param {Object} params - Query parameters
- * @param {number} params.page_number - Page number (default: 1)
- * @param {number} params.page_size - Page size (default: 10)
- * @param {string} params.status - Order status filter (optional)
- * @param {string} params.from - Start date filter (optional)
- * @param {string} params.to - End date filter (optional)
- * @param {string} params.search - Search query (optional)
- * @param {string} lang - Language code
  */
-const fetchOrders = async (params, lang) => {
+const fetchOrders = async (
+    params: OrdersQueryParams,
+    lang: string
+): Promise<OrdersPage> => {
     const token = Cookies.get("token");
 
-    const headers = {
+    const headers: Record<string, string> = {
         lang,
     };
 
@@ -26,15 +33,15 @@ const fetchOrders = async (params, lang) => {
 
     // Build query string
     const queryParams = new URLSearchParams();
-    if (params.page_number) queryParams.append('page_number', params.page_number);
-    if (params.page_size) queryParams.append('page_size', params.page_size);
+    if (params.page_number) queryParams.append('page_number', String(params.page_number));
+    if (params.page_size) queryParams.append('page_size', String(params.page_size));
     if (params.status) queryParams.append('status', params.status);
     if (params.from) queryParams.append('from', params.from);
     if (params.to) queryParams.append('to', params.to);
     if (params.search) queryParams.append('search', params.search);
 
     try {
-        const response = await api.get(
+        const response = await api.get<ApiEnvelope<OrdersPage>>(
             `${API_BASE_URL}/v1/order?${queryParams.toString()}`,
             { headers }
         );
@@ -48,11 +55,12 @@ const fetchOrders = async (params, lang) => {
 
 /**
  * Hook to fetch orders with pagination and filters
- * @param {Object} params - Query parameters
- * @param {string} lang - Language code
  */
-export const useGetOrders = (params = {}, lang = 'ar') => {
-    const defaultParams = {
+export const useGetOrders = (
+    params: OrdersQueryParams = {},
+    lang: string = 'ar'
+): UseQueryResult<OrdersPage> => {
+    const defaultParams: OrdersQueryParams = {
         page_number: 1,
         page_size: 10,
         ...params,

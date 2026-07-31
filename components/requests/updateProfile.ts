@@ -3,9 +3,16 @@ import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 import Cookies from 'js-cookie';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import type { ApiEnvelope, ApiProfile, UpdateProfilePayload } from '@/lib/apiTypes';
+import { getApiErrorMessage } from '@/lib/apiTypes';
 
-async function updateProfileRequest(data, lang) {
+type UpdateProfileResponse = ApiEnvelope<ApiProfile>;
+
+async function updateProfileRequest(
+    data: UpdateProfilePayload,
+    lang: string
+): Promise<UpdateProfileResponse> {
     const url = `${API_BASE_URL}/v1/update-profile`;
     const formData = new FormData();
 
@@ -14,19 +21,21 @@ async function updateProfileRequest(data, lang) {
     if (data.email) formData.append('email', data.email);
     if (data.photo) formData.append('photo', data.photo);
 
-    const headers = { lang };
+    const headers: Record<string, string> = { lang };
     const token = Cookies.get('token');
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const response = await api.put(url, formData, { headers });
+    const response = await api.put<UpdateProfileResponse>(url, formData, { headers });
     return response.data;
 }
 
-export function useUpdateProfile(lang) {
+export function useUpdateProfile(
+    lang: string
+): UseMutationResult<UpdateProfileResponse, unknown, UpdateProfilePayload> {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data) => updateProfileRequest(data, lang),
+        mutationFn: (data: UpdateProfilePayload) => updateProfileRequest(data, lang),
         onSuccess: (responseData) => {
             const message = responseData?.message;
             if (responseData?.status) {
@@ -52,7 +61,7 @@ export function useUpdateProfile(lang) {
             }
         },
         onError: (error) => {
-            const errorMessage = error?.response?.data?.message || error.message;
+            const errorMessage = getApiErrorMessage(error);
             toast(errorMessage, {
                 style: {
                     background: '#dc3545',

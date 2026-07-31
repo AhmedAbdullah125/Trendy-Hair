@@ -2,7 +2,6 @@ import React, { useMemo, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Order } from '../App';
 import { Product } from '../types';
-import { DEMO_REWARDS_TRANSACTIONS, DEMO_CASHBACK_TRANSACTIONS } from '../constants';
 import { useGetProfile } from './requests/useGetProfile';
 import AccountMenu from './account/AccountMenu';
 import EditAccountForm from './account/EditAccountForm';
@@ -18,7 +17,6 @@ interface AccountTabProps {
   favourites: number[];
   onToggleFavourite: (productId: number) => void;
   onAddToCart: (product: Product, quantity: number) => void;
-  loyaltyPoints: number;
   onLogout: () => void;
   onOpenCart?: () => void;
 }
@@ -28,7 +26,6 @@ const AccountTab: React.FC<AccountTabProps> = ({
   onNavigateToHome,
   initialOrderId,
   onClearInitialOrder,
-  loyaltyPoints,
   onLogout,
   onOpenCart
 }) => {
@@ -73,7 +70,6 @@ const AccountTab: React.FC<AccountTabProps> = ({
             <AccountMenu
               currentUser={currentUser}
               gameBalance={gameBalance}
-              loyaltyPoints={loyaltyPoints}
               onLogout={onLogout}
               navigate={navigate}
               onOpenCart={onOpenCart}
@@ -110,29 +106,22 @@ const AccountTab: React.FC<AccountTabProps> = ({
           }
         />
 
-        {/* Wallet Routes */}
+        {/*
+          Wallet route. The history now comes from the real ledger
+          (GET /v1/wallet-transactions) instead of a hardcoded DEMO array.
+
+          The "cashback" wallet route was removed: there is no cashback or
+          loyalty-points balance on the server, so it could only ever have
+          shown an invented number next to invented transactions.
+        */}
         <Route
           path="wallet/rewards"
           element={
             <WalletDetailsPage
               title="محفظة الجوائز"
-              balance={gameBalance}
+              balance={gameBalance ?? '0.00'}
               currencyLabel="د.ك"
-              explanation="رصيد الجوائز يأتي من الجوائز التي تربحينها من اللعب. صلاحية كل مبلغ 30 يوماً."
-              transactions={DEMO_REWARDS_TRANSACTIONS}
-              navigate={navigate}
-            />
-          }
-        />
-        <Route
-          path="wallet/cashback"
-          element={
-            <WalletDetailsPage
-              title="محفظة الكاش باك"
-              balance={loyaltyPoints}
-              currencyLabel="نقطة"
-              explanation="رصيد الكاش باك يأتي من عمليات الشراء. صلاحية كل مبلغ 30 يوماً."
-              transactions={DEMO_CASHBACK_TRANSACTIONS}
+              explanation="رصيد الجوائز يأتي من الجوائز التي تربحينها من اللعب، ويمكن استخدامه عند إتمام الطلب."
               navigate={navigate}
             />
           }

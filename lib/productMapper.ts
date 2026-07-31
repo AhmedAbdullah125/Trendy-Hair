@@ -1,41 +1,17 @@
 import { Product } from '../types';
+import type { ApiProductListItem } from './apiTypes';
 
-interface ApiProduct {
-    id: number;
-    name: string;
-    sku: string;
-    description: string;
-    main_image: string;
-    price: number;
-    discounted_price: number | null;
-    current_price: number;
-    has_discount: boolean;
-    quantity: number;
-    in_stock: boolean;
-    stock_status: string;
-    brand: {
-        id: number;
-        name: string;
-        image: string;
-        position: number;
-        is_active: number;
-    };
-    category: {
-        id: number;
-        name: string;
-        image: string;
-        position: number;
-        is_active: number;
-    };
-    is_favorite: boolean;
-    is_active: boolean;
-    is_recently: boolean;
-}
+/**
+ * Accepts either the lightweight listing row (`ProductListResource`) or the full
+ * single-product payload (`ProductResource`) — every listing endpoint returns the
+ * former, so `description`/`images` and the extra brand/category fields are optional.
+ */
+export type MappableApiProduct = ApiProductListItem;
 
 /**
  * Transforms an API product to match the component Product type
  */
-export const mapApiProductToComponent = (apiProduct: ApiProduct): Product => {
+export const mapApiProductToComponent = (apiProduct: MappableApiProduct): Product => {
     return {
         id: apiProduct.id,
         name: apiProduct.name,
@@ -62,6 +38,6 @@ export const mapApiProductToComponent = (apiProduct: ApiProduct): Product => {
 /**
  * Transforms an array of API products
  */
-export const mapApiProductsToComponent = (apiProducts: ApiProduct[]): Product[] => {
+export const mapApiProductsToComponent = (apiProducts: MappableApiProduct[]): Product[] => {
     return apiProducts.map(mapApiProductToComponent);
 };

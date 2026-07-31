@@ -2,24 +2,23 @@
 import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import type { ApiEnvelope, ApiOrder } from "@/lib/apiTypes";
 
 /**
  * Fetches a single order by ID from the API
- * @param {number} orderId - Order ID
- * @param {string} lang - Language code
  */
-const fetchOrderById = async (orderId, lang) => {
+const fetchOrderById = async (orderId: number, lang: string): Promise<ApiOrder> => {
     const token = Cookies.get("token");
 
-    const headers = {
+    const headers: Record<string, string> = {
         lang,
     };
 
     if (token) headers.Authorization = `Bearer ${token}`;
 
     try {
-        const response = await api.get(
+        const response = await api.get<ApiEnvelope<ApiOrder>>(
             `${API_BASE_URL}/v1/order/${orderId}`,
             { headers }
         );
@@ -33,10 +32,11 @@ const fetchOrderById = async (orderId, lang) => {
 
 /**
  * Hook to fetch a single order by ID
- * @param {number} orderId - Order ID
- * @param {string} lang - Language code
  */
-export const useGetOrder = (orderId, lang = 'ar') => {
+export const useGetOrder = (
+    orderId: number,
+    lang: string = 'ar'
+): UseQueryResult<ApiOrder> => {
     return useQuery({
         queryKey: ["order", orderId, lang],
         queryFn: () => fetchOrderById(orderId, lang),

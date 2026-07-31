@@ -14,6 +14,11 @@ interface ProductCardProps {
   onToggleFavourite: (id: number) => void;
   onClick: (product: Product) => void;
   lang?: string;
+  /**
+   * Accepted for call-site compatibility but intentionally unused: this component
+   * adds to the cart itself via `useAddToCart`/`addToCart`.
+   */
+  onAddToCart?: (product: Product, quantity: number) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({

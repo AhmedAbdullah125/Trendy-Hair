@@ -1,5 +1,6 @@
-import axios from 'axios';
+import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
 import Cookies from 'js-cookie';
+import type { ApiErrorBody } from './apiTypes';
 
 /**
  * Clears all auth tokens and redirects to the login page.
@@ -7,7 +8,7 @@ import Cookies from 'js-cookie';
  */
 let isRedirecting = false;
 
-export function handleUnauthorized() {
+export function handleUnauthorized(): void {
   if (isRedirecting) return;
   isRedirecting = true;
 
@@ -22,11 +23,11 @@ export function handleUnauthorized() {
 }
 
 /** Shared Axios instance used by every request in the app. */
-const api = axios.create();
+const api: AxiosInstance = axios.create();
 
 // ── Response interceptor ────────────────────────────────────────────────────
 api.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse<ApiErrorBody>) => {
     // The API sometimes returns HTTP 200 but with statusCode 401 in the JSON body
     if (response?.data?.statusCode === 401) {
       handleUnauthorized();
@@ -35,7 +36,7 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  (error: AxiosError<ApiErrorBody>) => {
     // Real HTTP 401 response
     const status = error?.response?.status;
     if (status === 401) {

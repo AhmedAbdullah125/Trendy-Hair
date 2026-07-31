@@ -5,4 +5,9 @@ export type AddressForm = {
     governorate: string;
     area: string;
     details: string;
+    /**
+     * Not currently collected by `DetailsStep`, but read when building the order
+     * payload — so it can legitimately be absent.
+     */
+    phone?: string;
 };

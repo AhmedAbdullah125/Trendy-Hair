@@ -1,8 +1,14 @@
 import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
+import type { ApiEnvelope, ApiRefreshTokenPayload } from '@/lib/apiTypes';
+import { getApiErrorMessage } from '@/lib/apiTypes';
+import type { SetLoading } from './loginRequest';
 
-export async function refreshToken(setLoading, lang) {
+export async function refreshToken(
+    setLoading: SetLoading,
+    lang: string
+): Promise<boolean | undefined> {
     setLoading(true)
     const url = `${API_BASE_URL}/v1/refresh-token`;
     const formData = new FormData();
@@ -11,16 +17,17 @@ export async function refreshToken(setLoading, lang) {
     formData.append('refresh_token', refresh_token);
     formData.append('client_id', "a0e57322-f1ef-4a3c-84ff-b9a3d852a559");
     formData.append('client_secret', "OF3II6JtC3DIrSk5mNVl0ZaPlkP1P8nI5wrf1tYX");
-    const headers = { 'lang': lang }
+    const headers: Record<string, string> = { 'lang': lang }
     try {
-        const response = await api.post(url, formData, { headers });
+        const response = await api.post<ApiEnvelope<ApiRefreshTokenPayload>>(url, formData, { headers });
         const message = response?.data?.message;
 
         setLoading(false)
         if (response.data.status) {
-            // Extract token and user from the new response structure
-            const tokenData = response.data.items.token;
-            const userData = response.data.items.user;
+            // This endpoint returns the token fields at the top level of `items`
+            // (unlike login/register, which nest them under `items.token`) and
+            // returns no `user`, so there is no user data to persist here.
+            const tokenData = response.data.items;
 
             toast(message, {
                 style: {
@@ -34,10 +41,6 @@ export async function refreshToken(setLoading, lang) {
             // Update access_token and refresh_token
             localStorage.setItem("token", tokenData.access_token);
             localStorage.setItem("refresh_token", tokenData.refresh_token);
-
-            // Update user data
-            localStorage.setItem("userId", userData.id);
-            localStorage.setItem("user", JSON.stringify(userData));
 
             // Update cookie with new access_token
             document.cookie = `token=${encodeURIComponent(tokenData.access_token)}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
@@ -56,7 +59,7 @@ export async function refreshToken(setLoading, lang) {
         }
     } catch (error) {
         setLoading(false);
-        const errorMessage = error?.response?.data?.message || error.message;
+        const errorMessage = getApiErrorMessage(error);
         toast(errorMessage, {
             style: {
                 background: "#dc3545",

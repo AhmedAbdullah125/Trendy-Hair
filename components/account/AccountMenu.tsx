@@ -12,8 +12,8 @@ interface AccountMenuProps {
         photo: string;
         wallet: string;
     };
-    gameBalance: number;
-    loyaltyPoints: number;
+    /** Rendered as-is; `AccountTab` passes the raw `wallet` decimal string from the API. */
+    gameBalance: string | number;
     onLogout: () => void;
     navigate: (path: string) => void;
     onOpenCart?: () => void;
@@ -22,7 +22,6 @@ interface AccountMenuProps {
 const AccountMenu: React.FC<AccountMenuProps> = ({
     currentUser,
     gameBalance,
-    loyaltyPoints,
     onLogout,
     navigate,
     onOpenCart
@@ -93,25 +92,12 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                     </div>
                 </div>
 
-                {/* Loyalty Points Card - Clickable */}
-                {/* <div
-                    onClick={() => navigate('/account/wallet/cashback')}
-                    className="bg-white rounded-[1.5rem] p-3 shadow-sm border border-app-card/30 flex flex-col justify-between relative overflow-hidden aspect-square cursor-pointer active:scale-95 transition-transform"
-                >
-                    <div className="absolute -bottom-2 -right-2 p-2 opacity-5">
-                        <Award size={48} />
-                    </div>
-                    <div className="flex flex-col items-start gap-1 z-10">
-                        <div className="p-1.5 bg-app-bg rounded-xl text-app-gold shrink-0">
-                            <Award size={14} />
-                        </div>
-                        <span className="text-[11px] font-bold text-app-text leading-tight">كاش باك</span>
-                    </div>
-                    <div className="z-10">
-                        <span className="text-lg font-bold text-app-gold block leading-none mb-0.5">{loyaltyPoints}</span>
-                        <span className="text-[8px] font-medium text-app-textSec block leading-tight">100 ≈ 1 دك</span>
-                    </div>
-                </div> */}
+                {/*
+                  A "cashback" card sat here, commented out, linking to
+                  /account/wallet/cashback. Removed along with that route:
+                  there is no cashback or loyalty balance on the server, so it
+                  could only ever have shown an invented number.
+                */}
 
                 {/* QR Code Card - Image Only */}
                 <div className="bg-white rounded-[1.5rem] p-3 shadow-sm border border-app-card/30 flex items-center justify-center relative overflow-hidden aspect-square">

@@ -1,26 +1,38 @@
 import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
+import type { ApiAuthPayload, ApiEnvelope } from '@/lib/apiTypes';
+import { getApiErrorMessage } from '@/lib/apiTypes';
+import type { RouterLike, SetLoading } from './loginRequest';
 
-export async function loginRequest(data, setLoading, lang, router) {
+export interface RegisterCredentials {
+    name: string;
+    phone: string;
+    password: string;
+}
+
+export async function registerRequest(
+    data: RegisterCredentials,
+    setLoading: SetLoading,
+    lang: string,
+    router: RouterLike
+): Promise<void> {
     setLoading(true)
-    const url = `${API_BASE_URL}/v1/login`;
+    const url = `${API_BASE_URL}/v1/register`;
     const formData = new FormData();
-    formData.append('phone', data.phone);
+    formData.append('name', data.name);
+    formData.append('phone', data.phone.split("+").join(""));
     formData.append('password', data.password);
+    formData.append('grant_type', "password");
     formData.append('client_id', "a0e57322-f1ef-4a3c-84ff-b9a3d852a559");
     formData.append('client_secret', "OF3II6JtC3DIrSk5mNVl0ZaPlkP1P8nI5wrf1tYX");
-    formData.append('grant_type', "password");
-    const headers = { 'lang': lang }
-    // clear token from cookies
-    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    const headers: Record<string, string> = { 'lang': lang }
     try {
-        const response = await api.post(url, formData, { headers });
+        const response = await api.post<ApiEnvelope<ApiAuthPayload>>(url, formData, { headers });
         const message = response?.data?.message;
 
         setLoading(false)
         if (response.data.status) {
-            // Extract token and user from the new response structure
             const tokenData = response?.data?.items?.token;
             const userData = response?.data?.items?.user;
             if (response?.data?.items?.token) {
@@ -35,12 +47,9 @@ export async function loginRequest(data, setLoading, lang, router) {
 
                     description: `مرحباً ${response?.data?.items?.token ? userData?.name : ""}`
                 });
-                // Store access_token and refresh_token
                 localStorage.setItem("token", tokenData?.access_token);
                 localStorage.setItem("refresh_token", tokenData?.refresh_token);
-                // Store user data
-                localStorage.setItem("userId", userData?.id);
-                // Set cookie with access_token
+                localStorage.setItem("userId", String(userData?.id));
                 document.cookie = `token=${encodeURIComponent(tokenData.access_token)}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
 
                 router.push("/");
@@ -71,7 +80,7 @@ export async function loginRequest(data, setLoading, lang, router) {
         }
     } catch (error) {
         setLoading(false);
-        const errorMessage = error?.response?.data?.message || error.message;
+        const errorMessage = getApiErrorMessage(error);
         toast(errorMessage, {
             style: {
                 background: "#dc3545",

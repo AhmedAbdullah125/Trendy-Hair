@@ -2,20 +2,21 @@
 import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { ApiCitiesLookup, ApiEnvelope } from "@/lib/apiTypes";
 
-const fetchCities = async (lang, governorateId) => {
+const fetchCities = async (lang: string, governorateId: string): Promise<ApiCitiesLookup> => {
   const token = Cookies.get("token");
 
-  const headers = { lang };
+  const headers: Record<string, string> = { lang };
   if (token) headers.Authorization = `Bearer ${token}`;
   const formData = new FormData();
   formData.append("slug", "cities");
   formData.append("governorate_id", governorateId);
 
 
-  const response = await api.post(
+  const response = await api.post<ApiEnvelope<ApiCitiesLookup>>(
     `${API_BASE_URL}/v1/lookups`,
     formData,
     { headers }
@@ -26,7 +27,10 @@ const fetchCities = async (lang, governorateId) => {
   return response.data.items;
 };
 
-export const useGetCities = (lang, governorateId) =>
+export const useGetCities = (
+  lang: string,
+  governorateId: string
+): UseQueryResult<ApiCitiesLookup> =>
   useQuery({
     queryKey: ["cities", lang, governorateId],
     queryFn: () => fetchCities(lang, governorateId),

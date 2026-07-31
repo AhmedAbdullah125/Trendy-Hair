@@ -1,28 +1,43 @@
 import React from 'react';
-import { ArrowRight, Wallet, History, ArrowDownLeft, ArrowUpRight, Calendar } from 'lucide-react';
-import { WalletTransaction } from '../../types';
+import { ArrowRight, Wallet, History, ArrowDownLeft, ArrowUpRight, Loader2, AlertCircle, Inbox } from 'lucide-react';
+import { useGetWalletTransactions, ApiWalletTransaction } from '../requests/useGetWalletTransactions';
 
 interface WalletDetailsPageProps {
     title: string;
-    balance: number;
+    /** Rendered as-is; may be the raw `wallet` decimal string from the API. */
+    balance: string | number;
     currencyLabel: string;
     explanation: string;
-    transactions: WalletTransaction[];
     navigate: (path: string) => void;
 }
+
+/** Raw ledger keys -> Arabic descriptions. */
+const describeAction = (action: string): string => {
+    const stage = action.match(/^competition_prize_stage_(\d+)$/);
+    if (stage) return `جائزة الفوز بالمرحلة ${stage[1]}`;
+
+    const refund = action.match(/^refund_order_(\d+)$/);
+    if (refund) return `استرجاع مبلغ الطلب #${refund[1]}`;
+
+    if (action.startsWith('rewards_claimed_')) return 'مكافأة تم استلامها';
+    if (action === 'payment_order') return 'استخدام الرصيد في طلب';
+
+    return action;
+};
 
 const WalletDetailsPage: React.FC<WalletDetailsPageProps> = ({
     title,
     balance,
     currencyLabel,
     explanation,
-    transactions,
     navigate
 }) => {
-    // Format date helper
-    const formatDate = (isoString: string) => {
-        const d = new Date(isoString);
-        return d.toLocaleDateString('en-GB'); // dd/mm/yyyy
+    const { data, isLoading, isError, error } = useGetWalletTransactions('ar');
+    const transactions: ApiWalletTransaction[] = data?.transactions ?? [];
+
+    const formatDate = (value: string) => {
+        const d = new Date(value.replace(' ', 'T'));
+        return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('en-GB');
     };
 
     return (
@@ -59,13 +74,33 @@ const WalletDetailsPage: React.FC<WalletDetailsPageProps> = ({
                     <h3 className="text-sm font-bold text-app-text">سجل العمليات</h3>
                 </div>
 
+                {isLoading && (
+                    <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-3 text-app-textSec">
+                        <Loader2 size={24} className="animate-spin" />
+                        <span className="text-xs">جارٍ تحميل السجل…</span>
+                    </div>
+                )}
+
+                {isError && !isLoading && (
+                    <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-3 text-red-500">
+                        <AlertCircle size={24} />
+                        <span className="text-xs font-bold">تعذّر تحميل سجل العمليات</span>
+                        <span className="text-[10px] text-app-textSec">
+                            {error instanceof Error ? error.message : 'حدث خطأ غير متوقع'}
+                        </span>
+                    </div>
+                )}
+
+                {!isLoading && !isError && transactions.length === 0 && (
+                    <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-3 text-app-textSec">
+                        <Inbox size={24} />
+                        <span className="text-xs">لا توجد عمليات بعد</span>
+                    </div>
+                )}
+
                 <div className="space-y-3">
                     {transactions.map((tx) => {
-                        const isCredit = tx.type === 'credit';
-                        const isDebit = tx.type === 'debit';
-                        const isExpiry = tx.type === 'expiry';
-
-                        const isNegative = isDebit || isExpiry;
+                        const isCredit = tx.direction === 'credit';
 
                         return (
                             <div key={tx.id} className="bg-white rounded-3xl p-5 shadow-sm border border-app-card/20 flex gap-4 items-start">
@@ -80,29 +115,20 @@ const WalletDetailsPage: React.FC<WalletDetailsPageProps> = ({
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-1">
                                         <span className={`text-lg font-bold font-alexandria ${isCredit ? 'text-green-600' : 'text-red-500'}`}>
-                                            {isCredit ? '+' : '−'}{tx.amount} {currencyLabel}
+                                            {isCredit ? '+' : '−'}{Math.abs(tx.amount).toFixed(3)} {currencyLabel}
                                         </span>
                                         <span className="text-[10px] font-bold text-app-textSec bg-app-bg px-2 py-1 rounded-lg">
-                                            {formatDate(tx.date)}
+                                            {formatDate(tx.created_at)}
                                         </span>
                                     </div>
 
                                     <p className="text-sm font-medium text-app-text mb-2 leading-snug">
-                                        {tx.description}
+                                        {describeAction(tx.action)}
                                     </p>
 
-                                    {isCredit && tx.expiryDate && (
-                                        <div className="flex items-center gap-1 text-[10px] text-app-textSec">
-                                            <Calendar size={10} />
-                                            <span>صالح حتى {formatDate(tx.expiryDate)}</span>
-                                        </div>
-                                    )}
-
-                                    {isExpiry && (
-                                        <span className="text-[10px] text-red-400 font-bold bg-red-50 px-2 py-0.5 rounded">
-                                            منتهي الصلاحية
-                                        </span>
-                                    )}
+                                    <span className="text-[10px] text-app-textSec">
+                                        الرصيد بعد العملية: {tx.balance.toFixed(3)} {currencyLabel}
+                                    </span>
                                 </div>
                             </div>
                         );

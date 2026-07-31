@@ -2,14 +2,26 @@ import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 import Cookies from 'js-cookie';
-export async function toggleFavourite(id, setLoading, lang) {
+import type { ApiEnvelope } from '@/lib/apiTypes';
+import { getApiErrorMessage } from '@/lib/apiTypes';
+import type { SetLoading } from './loginRequest';
+
+export async function addToCart(
+    id: number,
+    quantity: number,
+    setLoading: SetLoading,
+    lang: string
+): Promise<void> {
     setLoading(true)
-    const url = `${API_BASE_URL}/v1/products/toggle-favorite/${id}`;
-    const headers = { 'lang': lang }
+    const url = `${API_BASE_URL}/v1/cart/add-items`;
+    const headers: Record<string, string> = { 'lang': lang }
     const token = Cookies.get("token");
     if (token) headers.Authorization = `Bearer ${token}`;
+    const formData = new FormData();
+    formData.append("product_id", String(id));
+    formData.append("quantity", String(quantity));
     try {
-        const response = await api.post(url, {}, { headers });
+        const response = await api.post<ApiEnvelope<unknown>>(url, formData, { headers });
         const message = response?.data?.message;
 
         setLoading(false)
@@ -35,7 +47,7 @@ export async function toggleFavourite(id, setLoading, lang) {
         }
     } catch (error) {
         setLoading(false);
-        const errorMessage = error?.response?.data?.message || error.message;
+        const errorMessage = getApiErrorMessage(error);
         toast(errorMessage, {
             style: {
                 background: "#dc3545",

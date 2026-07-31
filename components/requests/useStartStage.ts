@@ -2,18 +2,28 @@
 import api from '@/lib/axiosInstance';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '../../lib/apiConfig';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, type UseMutationResult } from '@tanstack/react-query';
+import type { ApiEnvelope, ApiStartStageData } from '@/lib/apiTypes';
+import type { StageQuestion } from '../../types';
+
+/** Normalised result of starting a stage. */
+export interface StartStageResult {
+  attemptId: number;
+  questionTime: number;
+  totalQuestions: number;
+  questions: StageQuestion[];
+}
 
 /**
  * Starts a competition stage and returns the attempt + all questions.
  * POST /v1/competition/stages/{stageId}/start
  */
-const startStage = async (stageId) => {
+const startStage = async (stageId: number): Promise<StartStageResult> => {
   const token = Cookies.get('token');
-  const headers = { lang: 'ar' };
+  const headers: Record<string, string> = { lang: 'ar' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await api.post(
+  const response = await api.post<ApiEnvelope<ApiStartStageData>>(
     `${API_BASE_URL}/v1/competition/stages/${stageId}/start`,
     {},
     { headers }
@@ -37,7 +47,7 @@ const startStage = async (stageId) => {
   };
 };
 
-export const useStartStage = () =>
+export const useStartStage = (): UseMutationResult<StartStageResult, unknown, number> =>
   useMutation({
     mutationFn: startStage,
   });

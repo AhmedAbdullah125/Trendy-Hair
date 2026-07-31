@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CartItem, Order } from "../../App";
-import { LOYALTY_POINT_VALUE_KD, GAME_REDEMPTION_CAP_KD } from "../../constants";
+import { GAME_REDEMPTION_CAP_KD } from "../../constants";
 import { useDeleteCartItem } from "../requests/useDeleteCartItem";
 import { useGetCities } from "../requests/useGetCities";
 import CartStep from "./CartStep";
@@ -17,14 +17,17 @@ interface CartFlowProps {
     cartItems: CartItem[];
     onClose: () => void;
 
+    /**
+     * Accepted for call-site compatibility but intentionally unused: quantities are
+     * updated through the cart API (`useAddToCart`/`useDeleteCartItem`).
+     */
+    onUpdateQuantity?: (productId: number, delta: number) => void;
+
     onRemoveItem: (productId: number) => void;
     onClearCart: () => void;
 
     onAddOrder: (order: Order, paidAmountKD: number) => void;
     onViewOrderDetails: (orderId: string) => void;
-
-    loyaltyPoints: number;
-    onDeductWallets: (gameAmount: number, pointsAmount: number) => void;
 
     lang?: string;
 }
@@ -36,7 +39,6 @@ const CartFlow: React.FC<CartFlowProps> = ({
     onClearCart,
     onAddOrder,
     onViewOrderDetails,
-    loyaltyPoints,
     lang = "ar",
 }) => {
     // Derive game balance from profile API (stays in sync after reward claims)
@@ -47,7 +49,6 @@ const CartFlow: React.FC<CartFlowProps> = ({
     const [paymentMethod, setPaymentMethod] = useState<"cash" | "visa" | "knet">("visa");
     // Wallet Usage State
     const [useGameBalance, setUseGameBalance] = useState(false);
-    const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
     const [gameAmountToUse, setGameAmountToUse] = useState<number>(0);
 
     const [addressForm, setAddressForm] = useState<AddressForm>({
@@ -94,38 +95,27 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
     const maxGameRedemption = useMemo(() => Math.min(gameBalance, GAME_REDEMPTION_CAP_KD), [gameBalance]);
 
-    const maxLoyaltyRedemptionValue = useMemo(() => {
-        const pointsValue = loyaltyPoints * LOYALTY_POINT_VALUE_KD;
-        return Math.min(pointsValue, subtotal + deliveryFee);
-    }, [loyaltyPoints, subtotal, deliveryFee]);
-
-    const { finalGameDeduction, finalLoyaltyDeduction, finalTotal } = useMemo(() => {
+    // Loyalty points were removed: there is no loyalty balance on the server
+    // and the deduction was never sent with the order, so the screen showed a
+    // discount the customer was then charged for. The wallet below is real.
+    const { finalGameDeduction, finalTotal } = useMemo(() => {
         let toPay = subtotal + deliveryFee;
         let gameDeduction = 0;
-        let loyaltyDeduction = 0;
 
         if (useGameBalance) {
             gameDeduction = Math.min(gameAmountToUse, maxGameRedemption, toPay);
             toPay -= gameDeduction;
         }
 
-        if (useLoyaltyPoints) {
-            const available = loyaltyPoints * LOYALTY_POINT_VALUE_KD;
-            loyaltyDeduction = Math.min(toPay, available);
-            toPay -= loyaltyDeduction;
-        }
-
         return {
             finalGameDeduction: parseFloat(gameDeduction.toFixed(3)),
-            finalLoyaltyDeduction: parseFloat(loyaltyDeduction.toFixed(3)),
             finalTotal: parseFloat(toPay.toFixed(3)),
         };
-    }, [subtotal, deliveryFee, useGameBalance, gameAmountToUse, maxGameRedemption, useLoyaltyPoints, loyaltyPoints]);
+    }, [subtotal, deliveryFee, useGameBalance, gameAmountToUse, maxGameRedemption]);
 
     useEffect(() => {
         if (step === "details") {
             setUseGameBalance(false);
-            setUseLoyaltyPoints(false);
             setGameAmountToUse(maxGameRedemption);
         }
     }, [step, maxGameRedemption]);
@@ -196,17 +186,12 @@ const CartFlow: React.FC<CartFlowProps> = ({
                 addressForm={addressForm}
                 onChangeAddress={onChangeAddress}
                 onBack={() => setStep("cart")}
-                loyaltyPoints={loyaltyPoints}
                 useGameBalance={useGameBalance}
                 setUseGameBalance={setUseGameBalance}
-                useLoyaltyPoints={useLoyaltyPoints}
-                setUseLoyaltyPoints={setUseLoyaltyPoints}
                 maxGameRedemption={maxGameRedemption}
                 gameAmountToUse={gameAmountToUse}
                 setGameAmountToUse={setGameAmountToUse}
-                maxLoyaltyRedemptionValue={maxLoyaltyRedemptionValue}
                 finalGameDeduction={finalGameDeduction}
-                finalLoyaltyDeduction={finalLoyaltyDeduction}
                 finalTotal={finalTotal}
                 subtotal={subtotal}
                 deliveryFee={deliveryFee}

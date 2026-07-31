@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { DataProvider } from './context/DataContext';
 import TabBar from './components/TabBar';
@@ -14,7 +15,7 @@ import AuthScreen from './components/AuthScreen';
 import SuccessStep from './components/cart/SuccessStep';
 import { TabId, Product } from './types';
 import { Check } from 'lucide-react';
-import { STORAGE_KEYS, POINTS_EARNED_PER_KD } from './constants';
+import { STORAGE_KEYS } from './constants';
 import Cookies from 'js-cookie';
 import CartFlow from './components/cart/CartFlow';
 
@@ -39,16 +40,13 @@ export interface Order {
 const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [favourites, setFavourites] = useState<number[]>([]);
   const [pendingOrderDetailsId, setPendingOrderDetailsId] = useState<string | null>(null);
   const [paymentSuccessData, setPaymentSuccessData] = useState<{ orderId: string } | null>(null);
-
-  // --- WALLET STATE ---
-  const [gameBalance, setGameBalance] = useState<number>(30);
-  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -58,6 +56,13 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
 
   // ✅ Cart from API
   const { data: cartData, isLoading: cartLoading } = useGetCart(lang);
+
+  // --- WALLET ---
+  // No wallet state lives here any more. The balance is owned by the server
+  // (users.wallet) and each screen reads it from the profile query directly
+  // (CartFlow, PlayTab). This used to hold a localStorage copy seeded to a
+  // hardcoded 30, which no screen actually spent against but which a fresh
+  // install would still surface as credit the user had never earned.
 
   // ✅ Add to cart mutation
   const addToCartMut = useAddToCart();
@@ -80,15 +85,11 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     const savedFavs = localStorage.getItem(STORAGE_KEYS.FAVOURITES);
     if (savedFavs) setFavourites(JSON.parse(savedFavs));
 
-    const savedGameBalance = localStorage.getItem(STORAGE_KEYS.WALLET_GAME);
-    if (savedGameBalance) {
-      setGameBalance(parseFloat(savedGameBalance));
-    } else {
-      localStorage.setItem(STORAGE_KEYS.WALLET_GAME, '30');
-    }
-
-    const savedLoyalty = localStorage.getItem(STORAGE_KEYS.WALLET_LOYALTY);
-    if (savedLoyalty) setLoyaltyPoints(parseInt(savedLoyalty));
+    // The wallet is no longer mirrored in localStorage — the server is the
+    // only source of truth. Clear any balance left by an older build so it
+    // cannot be mistaken for real credit.
+    localStorage.removeItem(STORAGE_KEYS.WALLET_GAME);
+    localStorage.removeItem(STORAGE_KEYS.WALLET_LOYALTY);
 
     // Check for payment success parameters in URL
     const searchParams = new URLSearchParams(window.location.search);
@@ -150,29 +151,12 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   }, [cartData]);
 
   // --- WALLET HANDLERS ---
-  const creditGameBalance = (amount: number) => {
-    const newBalance = gameBalance + amount;
-    setGameBalance(newBalance);
-    localStorage.setItem(STORAGE_KEYS.WALLET_GAME, newBalance.toString());
-  };
-
-  const creditLoyaltyPoints = (points: number) => {
-    const newPoints = loyaltyPoints + points;
-    setLoyaltyPoints(newPoints);
-    localStorage.setItem(STORAGE_KEYS.WALLET_LOYALTY, newPoints.toString());
-  };
-
-  const deductWallets = (gameAmount: number, pointsAmount: number) => {
-    if (gameAmount > 0) {
-      const newGame = Math.max(0, gameBalance - gameAmount);
-      setGameBalance(newGame);
-      localStorage.setItem(STORAGE_KEYS.WALLET_GAME, newGame.toString());
-    }
-    if (pointsAmount > 0) {
-      const newPoints = Math.max(0, loyaltyPoints - pointsAmount);
-      setLoyaltyPoints(newPoints);
-      localStorage.setItem(STORAGE_KEYS.WALLET_LOYALTY, newPoints.toString());
-    }
+  // Crediting and debiting happen server-side: the competition endpoint credits
+  // on a win and the order endpoint debits at checkout. The client only needs
+  // to re-read the balance afterwards, so these just invalidate the profile
+  // query rather than doing their own arithmetic on a local copy.
+  const refreshWallet = () => {
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
   // --- CART HANDLERS (API) ---
@@ -203,16 +187,14 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     // TODO: call API (clear cart) then invalidateQueries(["cart"])
   };
 
-  const handleAddOrder = (order: Order, paidAmountKD: number) => {
+  const handleAddOrder = (order: Order, _paidAmountKD: number) => {
     const updatedOrders = [order, ...orders];
     setOrders(updatedOrders);
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updatedOrders));
 
-    // Calculate Loyalty Points (e.g. 1 Point per KD)
-    if (paidAmountKD > 0) {
-      const pointsEarned = Math.floor(paidAmountKD * POINTS_EARNED_PER_KD);
-      creditLoyaltyPoints(pointsEarned);
-    }
+    // The order endpoint already debited any wallet used, so pull the new
+    // balance rather than guessing at it locally.
+    refreshWallet();
   };
 
   const handleToggleFavourite = (productId: number) => {
@@ -269,8 +251,6 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
             onClearCart={handleClearCart}
             onAddOrder={handleAddOrder}
             onViewOrderDetails={handleViewOrderDetails}
-            loyaltyPoints={loyaltyPoints}
-            onDeductWallets={deductWallets}
             lang={lang}
           />
         )}
@@ -330,7 +310,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
             />
 
             <Route path="/reviews" element={<ReviewsTab />} />
-            <Route path="/play" element={<PlayTab onCreditWallet={creditGameBalance} />} />
+            <Route path="/play" element={<PlayTab onCreditWallet={refreshWallet} />} />
             <Route
               path="/favorites"
               element={
@@ -353,7 +333,6 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                   favourites={favourites}
                   onToggleFavourite={handleToggleFavourite}
                   onAddToCart={handleAddToCart}
-                  loyaltyPoints={loyaltyPoints}
                   onLogout={onLogout}
                   onOpenCart={() => setIsCartOpen(true)}
                 />

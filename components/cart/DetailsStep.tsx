@@ -12,21 +12,14 @@ type Props = {
     onBack: () => void;
 
     // Wallet + totals
-    loyaltyPoints: number;
-
     useGameBalance: boolean;
     setUseGameBalance: (v: boolean) => void;
-
-    useLoyaltyPoints: boolean;
-    setUseLoyaltyPoints: (v: boolean) => void;
 
     maxGameRedemption: number;
     gameAmountToUse: number;
     setGameAmountToUse: (v: number) => void;
 
-    maxLoyaltyRedemptionValue: number;
     finalGameDeduction: number;
-    finalLoyaltyDeduction: number;
     finalTotal: number;
 
     subtotal: number;
@@ -43,17 +36,12 @@ const DetailsStep: React.FC<Props> = ({
     addressForm,
     onChangeAddress,
     onBack,
-    loyaltyPoints,
     useGameBalance,
     setUseGameBalance,
-    useLoyaltyPoints,
-    setUseLoyaltyPoints,
     maxGameRedemption,
     gameAmountToUse,
     setGameAmountToUse,
-    maxLoyaltyRedemptionValue,
     finalGameDeduction,
-    finalLoyaltyDeduction,
     finalTotal,
     subtotal,
     deliveryFee,
@@ -224,44 +212,13 @@ const DetailsStep: React.FC<Props> = ({
                         )}
                     </div>
 
-                    {/* Loyalty points */}
-                    {/* <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle2 size={16} className={useLoyaltyPoints ? "text-green-500" : "text-gray-300"} />
-                                <span className="text-sm font-bold text-app-text">نقاط الولاء</span>
-                            </div>
-                            <div className="text-right">
-                                <span className="text-xs font-bold text-app-text block">{loyaltyPoints} نقطة</span>
-                                <span className="text-[10px] text-app-textSec">
-                                    ≈ {maxLoyaltyRedemptionValue.toFixed(3)} د.ك
-                                </span>
-                            </div>
-                        </div>
-
-                        {loyaltyPoints > 0 ? (
-                            <div className="bg-app-bg rounded-xl p-3 flex items-center justify-between">
-                                <div>
-                                    <label className="text-xs text-app-textSec flex items-center gap-1 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={useLoyaltyPoints}
-                                            onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
-                                            className="rounded text-app-gold focus:ring-app-gold"
-                                        />
-                                        استبدال الكل
-                                    </label>
-                                    <p className="text-[10px] text-app-textSec mt-1">يمكن استخدام النقاط بالكامل.</p>
-                                </div>
-
-                                {useLoyaltyPoints && (
-                                    <span className="text-xs font-bold text-green-600">-{finalLoyaltyDeduction.toFixed(3)} د.ك</span>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-xs text-app-textSec italic">لا توجد نقاط متاحة</p>
-                        )}
-                    </div> */}
+                    {/*
+                      A "loyalty points" block sat here, commented out. It has
+                      been removed rather than left dormant: there is no loyalty
+                      balance on the server and the deduction was never sent
+                      with the order, so re-enabling it would have shown the
+                      customer a discount they would then be charged for.
+                    */}
                 </section>
 
                 {/* Payment */}
@@ -339,13 +296,6 @@ const DetailsStep: React.FC<Props> = ({
                         <div className="flex justify-between text-app-gold">
                             <span>خصم رصيد الألعاب:</span>
                             <span>-{finalGameDeduction.toFixed(3)} د.ك</span>
-                        </div>
-                    )}
-
-                    {finalLoyaltyDeduction > 0 && (
-                        <div className="flex justify-between text-app-gold">
-                            <span>خصم النقاط:</span>
-                            <span>-{finalLoyaltyDeduction.toFixed(3)} د.ك</span>
                         </div>
                     )}
 

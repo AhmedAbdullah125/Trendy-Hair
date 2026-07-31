@@ -14,6 +14,8 @@ export interface Stage {
   difficulty: 'easy' | 'medium' | 'hard';
   rewardName: string;
   questionTime?: number;
+  /** Only set for API-driven stages (`useGetCompetitionStages`). */
+  questionsCount?: number;
   questions: Question[];
 }
 
@@ -76,14 +78,30 @@ export interface Brand {
 export interface Product {
   id: number;
   name: string;
-  price: string;
-  oldPrice?: string;
+  /**
+   * Either a pre-formatted display string (e.g. `"12.500 د.ك"`, used by the
+   * seeded/demo data and the cart mapper) or the raw numeric price coming
+   * straight from the API. Both forms are rendered as-is.
+   */
+  price: string | number;
+  oldPrice?: string | number | null;
   image: string;
   description?: string;
-  brandId?: number;
+  /** String when derived from an API relation id, number in the seeded data. */
+  brandId?: string | number;
   categoryId?: string;
   isNew?: boolean; // For "وصلنا حديثاً"
   isActive?: boolean;
+
+  // Fields populated when the product originates from the API
+  // (see `lib/productMapper.ts`). Absent in the seeded/demo data.
+  brandName?: string;
+  categoryName?: string;
+  isFeatured?: boolean;
+  stockStatus?: string;
+  inStock?: boolean;
+  quantity?: number;
+  isFavorite?: boolean;
 }
 
 export interface Package {
@@ -102,7 +120,8 @@ export interface Review {
   videoUrl: string;
   isActive: boolean;
   sortOrder: number;
-  date: string;
+  /** Not returned by `ReviewResource`, so absent for API-sourced reviews. */
+  date?: string;
 }
 
 export interface WalletTransaction {

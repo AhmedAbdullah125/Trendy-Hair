@@ -2,19 +2,20 @@
 import api from "@/lib/axiosInstance";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "../../lib/apiConfig";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import type { ApiEnvelope, ApiProductsPage } from "@/lib/apiTypes";
 
-const fetchFavourites = async (lang, page) => {
+const fetchFavourites = async (lang: string, page: number): Promise<ApiProductsPage> => {
   const token = Cookies.get("token");
 
   const formData = new FormData();
-  formData.append("page_size", 10);
-  formData.append("page_number", page);
+  formData.append("page_size", String(10));
+  formData.append("page_number", String(page));
 
-  const headers = { lang };
+  const headers: Record<string, string> = { lang };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await api.post(
+  const response = await api.post<ApiEnvelope<ApiProductsPage>>(
     `${API_BASE_URL}/v1/products/favorites`,
     formData,
     { headers }
@@ -23,7 +24,10 @@ const fetchFavourites = async (lang, page) => {
   return response.data.items; // ✅ { products, pagination }
 };
 
-export const useGetFavourites = (lang, page) =>
+export const useGetFavourites = (
+  lang: string,
+  page: number
+): UseQueryResult<ApiProductsPage> =>
   useQuery({
     queryKey: ["favourites", lang, page],
     queryFn: () => fetchFavourites(lang, page),

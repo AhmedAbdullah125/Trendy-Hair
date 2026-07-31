@@ -5,6 +5,8 @@ const API_ENDPOINTS = {
   LOGIN: '/auth/login',
   USER_PROFILE: '/user/profile',
   // Add more endpoints as needed
-};
+} as const;
+
+export type ApiEndpointName = keyof typeof API_ENDPOINTS;
 
 export { API_BASE_URL, API_ENDPOINTS };

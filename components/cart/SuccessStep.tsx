@@ -5,6 +5,11 @@ import { useNavigate } from "react-router-dom";
 type Props = {
     lastOrderId: string;
     onClose: () => void;
+    /**
+     * Accepted for call-site compatibility but intentionally unused: this screen
+     * navigates to the order via `useNavigate`.
+     */
+    onViewOrderDetails?: (orderId: string) => void;
 };
 
 const SuccessStep: React.FC<Props> = ({ lastOrderId, onClose }) => {

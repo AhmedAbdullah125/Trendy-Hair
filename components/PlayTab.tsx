@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GameState, PlayerState, StageQuestion, CollectedAnswer } from '../types';
-import { GAME_STAGES, LOCK_DURATION_MS, STORAGE_KEYS } from '../constants';
+import { LOCK_DURATION_MS, STORAGE_KEYS } from '../constants';
 import { useGetCompetitionStages } from './requests/useGetCompetitionStages';
 import { useStartStage } from './requests/useStartStage';
 import { useSubmitAttempt } from './requests/useSubmitAttempt';
@@ -18,10 +18,34 @@ interface PlayTabProps {
 }
 
 const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
-  const { gameSettings } = useData();
+  const { gameSettings: localGameSettings } = useData();
 
-  const { data: competitionData } = useGetCompetitionStages();
-  const gameStages = competitionData?.stages ?? GAME_STAGES;
+  const { data: competitionData, isLoading: stagesLoading, isError: stagesError } = useGetCompetitionStages();
+
+  // No static fallback. The old `?? GAME_STAGES` showed three invented stages
+  // ("10 د.ك / 20 د.ك / 30 د.ك") whenever the API was slow or failed — stages
+  // that do not exist server-side, so tapping one could only fail.
+  const gameStages = competitionData?.stages ?? [];
+
+  // Competition rules belong to the server. These used to be hardcoded in
+  // constants.ts and persisted to localStorage, so the client enforced
+  // cooldowns and a balance cap the server knew nothing about. The local
+  // context is kept only as a fallback for values the API does not send.
+  const serverSettings = competitionData?.settings;
+  const gameSettings = useMemo(() => {
+    const interval = serverSettings?.competition_interval_minutes;
+
+    return {
+      ...localGameSettings,
+      timeLimitSeconds: serverSettings?.competition_question_time ?? localGameSettings.timeLimitSeconds,
+      // One server-side interval governs replays, win or lose.
+      cooldownLossMinutes: interval ?? localGameSettings.cooldownLossMinutes,
+      cooldownWinMinutes: interval ?? localGameSettings.cooldownWinMinutes,
+      // null from the server means "no cap"; Infinity disables the gate
+      // without special-casing every comparison below.
+      gameBalanceCap: serverSettings?.game_balance_cap ?? Infinity,
+    };
+  }, [serverSettings, localGameSettings]);
 
   const { data: profileData } = useGetProfile('ar');
   const gameBalance = parseFloat(profileData?.wallet || '0');
@@ -30,7 +54,9 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentStageIndex: 0,
     currentQuestionIndex: 0,
-    rewardsEarned: new Array(GAME_STAGES.length).fill(false),
+    // Sized from the real stage list once it loads (see the effect below);
+    // this used to be sized by the static GAME_STAGES array's length.
+    rewardsEarned: [],
     lastLossTimestamp: null,
     lastWinDate: null,
     lastWinTimestamp: null,
@@ -93,6 +119,21 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
       lastWinTimestamp: parsed.lastWinTimestamp || null,
     }));
   }, [gameSettings.cooldownLossMinutes, gameSettings.cooldownWinMinutes]);
+
+  // Stages arrive asynchronously, so the rewards array has to be sized once
+  // they land — it starts empty rather than being sized by a static constant.
+  useEffect(() => {
+    if (gameStages.length === 0) return;
+
+    setPlayerState(prev => {
+      if (prev.rewardsEarned.length === gameStages.length) return prev;
+
+      const resized = new Array(gameStages.length).fill(false);
+      prev.rewardsEarned.forEach((earned, i) => { if (i < resized.length) resized[i] = earned; });
+
+      return { ...prev, rewardsEarned: resized };
+    });
+  }, [gameStages.length]);
 
   // Auto-unlock cooldowns
   useEffect(() => {

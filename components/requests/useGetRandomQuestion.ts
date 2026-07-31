@@ -2,18 +2,23 @@
 import api from '@/lib/axiosInstance';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '../../lib/apiConfig';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import type { ApiEnvelope, ApiQuestion } from '@/lib/apiTypes';
+import type { Question } from '../../types';
 
 /**
  * Fetches a random question from the API and maps it to the internal Question shape:
  * { id, text, options: string[], correctAnswer: number (index), difficulty: 'easy' }
  */
-const fetchRandomQuestion = async () => {
+const fetchRandomQuestion = async (): Promise<Question> => {
   const token = Cookies.get('token');
-  const headers = { lang: 'ar' };
+  const headers: Record<string, string> = { lang: 'ar' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await api.get(`${API_BASE_URL}/v1/questions/random`, { headers });
+  const response = await api.get<ApiEnvelope<ApiQuestion>>(
+    `${API_BASE_URL}/v1/questions/random`,
+    { headers }
+  );
   const item = response.data?.items;
 
   if (!item) throw new Error('No question returned');
@@ -38,10 +43,13 @@ const fetchRandomQuestion = async () => {
  * Each call with a unique `questionKey` triggers a fresh fetch from the API.
  * Pass a changing key (e.g. an incrementing counter) to force a new question.
  *
- * @param {number|string} questionKey - Changes to trigger a new fetch
- * @param {boolean} enabled - Whether to fetch at all (only during PLAYING state)
+ * @param questionKey - Changes to trigger a new fetch
+ * @param enabled - Whether to fetch at all (only during PLAYING state)
  */
-export const useGetRandomQuestion = (questionKey, enabled = true) => {
+export const useGetRandomQuestion = (
+  questionKey: number | string,
+  enabled: boolean = true
+): UseQueryResult<Question> => {
   return useQuery({
     queryKey: ['random-question', questionKey],
     queryFn: fetchRandomQuestion,

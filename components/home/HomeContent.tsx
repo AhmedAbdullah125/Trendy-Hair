@@ -15,7 +15,8 @@ interface Props {
     onToggleFavourite: (id: number) => void;
     onAddToCart: (p: Product, q: number) => void;
     onProductClick: (p: Product) => void;
-    categories: { id: number; name: string; image: string | null }[];
+    /** `id` is stringified upstream in `HomeTab`, hence the widened type. */
+    categories: { id: string | number; name: string; image: string | null }[];
     onClickCategory: (id: number, name: string) => void;
     onClickBrand: (id: number) => void;
     onViewAllRecent: () => void;
