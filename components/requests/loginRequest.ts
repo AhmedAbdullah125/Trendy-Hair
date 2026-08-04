@@ -3,6 +3,7 @@ import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 import type { ApiAuthPayload, ApiEnvelope } from '@/lib/apiTypes';
 import { getApiErrorMessage } from '@/lib/apiTypes';
+import { getApiStatusCode } from '@/lib/apiResult';
 import { phoneLookupCandidates } from '@/lib/phone';
 
 export interface LoginCredentials {
@@ -50,15 +51,38 @@ export async function loginRequest(
     try {
         // The stored spelling is unknowable from the client, so try each in turn
         // and keep the first that gets past "this number is not registered".
-        // A wrong password does not come back as 404, so it stops here rather
-        // than replaying the attempt.
+        //
+        // Both outcomes have to be handled: the API now returns a real HTTP 404,
+        // which axios rejects, while an older deployment answers 200 with
+        // `status: false` in the body. Only a 404 is retried — a wrong password
+        // is a different failure and must stop here rather than replaying the
+        // attempt against every spelling.
         const candidates = phoneLookupCandidates(data.phone, data.dialCode ?? '');
-        let response = await attemptLogin(candidates[0] ?? '', data, lang);
+        let response: Awaited<ReturnType<typeof attemptLogin>> | null = null;
+        let notRegistered: unknown = null;
 
-        for (const candidate of candidates.slice(1)) {
-            if (response?.data?.statusCode !== PHONE_NOT_REGISTERED) break;
-            response = await attemptLogin(candidate, data, lang);
+        for (const candidate of candidates) {
+            try {
+                const attempt = await attemptLogin(candidate, data, lang);
+
+                if (attempt.data?.status === false && attempt.data?.statusCode === PHONE_NOT_REGISTERED) {
+                    response = attempt;   // remember it, in case every spelling fails
+                    continue;
+                }
+
+                response = attempt;
+                break;
+            } catch (err) {
+                if (getApiStatusCode(err) === PHONE_NOT_REGISTERED) {
+                    notRegistered = err;
+                    continue;
+                }
+                throw err;
+            }
         }
+
+        // Every spelling came back unknown — report that, not a generic error.
+        if (!response) throw notRegistered ?? new Error('Login failed');
 
         const message = response?.data?.message;
 

@@ -275,7 +275,22 @@ export interface ApiProfile {
   is_active: number;
   is_verify: number;
   lang: string;
-  wallet: string;
+  /**
+   * Balance **in points**, not dinars. Divide by `points_per_dinar` for money.
+   * Still typed as `string` because the field is serialised inconsistently
+   * across endpoints; read it through the helpers in `lib/points.ts`.
+   */
+  wallet: string | number;
+  /** Points that make up one dinar. Editable from the dashboard. */
+  points_per_dinar?: number;
+  /** Dinars still redeemable after money promised to unpaid orders. */
+  wallet_spendable?: number;
+  /** The same figure in points — the redemption slider's maximum. */
+  wallet_spendable_points?: number;
+  /** Dinars the balance must reach before redemption is offered at all. */
+  min_wallet_redemption?: number;
+  /** False when the balance is below the minimum worth redeeming. */
+  can_use_wallet?: boolean;
   created_at: string;
 }
 
@@ -405,6 +420,12 @@ export interface ApiCreateOrderResult {
   payment_url: string | null;
   payment_status: ApiOrderPaymentStatus;
   total: string;
+  /** Present since the points release — the credit actually applied, in dinars. */
+  wallet_amount?: number;
+  order_id?: number;
+  order_number?: string;
+  subtotal?: number;
+  delivery_cost?: number;
 }
 
 /** Raw `payment_status` enum values stored on the order. */
@@ -461,12 +482,36 @@ export interface ApiCompetitionSettings {
   competition_question_time: number;
   /** Wallet balance at which a player stops earning; null means no cap. */
   game_balance_cap: number | null;
+  /** Minutes a loss locks the player out for. Default 1440 (24h). */
+  competition_block_minutes?: number;
 }
 
-/** Payload of `GET /v1/competition/stages`. */
+/**
+ * Payload of `GET /v1/competition/stages`.
+ *
+ * Carries the state of any run already in progress, so opening the game screen
+ * can restore it rather than starting over.
+ */
 export interface ApiCompetitionStagesData {
   settings: ApiCompetitionSettings;
   stages: ApiCompetitionStage[];
+  /** Points staked on the current run and still at risk. */
+  pending_points?: number;
+  /** Whether there is anything to bank right now. */
+  can_withdraw?: boolean;
+  /** ISO-8601 while the post-loss lockout is active; null when free to play. */
+  blocked_until?: string | null;
+}
+
+/** How a competition attempt was settled. */
+export type ApiAttemptSettlement = 'pending' | 'withdrawn' | 'forfeited';
+
+/** Payload of `POST /v1/competition/withdraw`. */
+export interface ApiWithdrawData {
+  points_withdrawn: number;
+  stages_banked: number;
+  pending_points: number;
+  wallet_balance: number;
 }
 
 /** `CompetitionAnswerResource` */
@@ -493,6 +538,8 @@ export interface ApiCompetitionAttempt {
   total_questions: number;
   prize_earned: string;
   wallet_credited: boolean;
+  /** `pending` = staked and at risk, `withdrawn` = banked, `forfeited` = lost. */
+  settlement?: ApiAttemptSettlement;
   started_at: string | null;
   completed_at: string | null;
 }
@@ -524,7 +571,24 @@ export interface SubmitAttemptPayload {
  */
 export interface ApiSubmitAttemptData {
   attempt: ApiCompetitionAttempt;
+  /**
+   * `wallet_balance` no longer moves when a stage is cleared — points are
+   * staked, not banked, until the player leaves. Read `points_staked` and
+   * `pending_points` to describe a win.
+   */
   wallet_balance: number;
+  /** Whether every answer was correct. Stages are all-or-nothing. */
+  cleared?: boolean;
+  /** Points this stage added to the pot. */
+  points_staked?: number;
+  /** The whole pot now at risk. */
+  pending_points?: number;
+  /** Points lost by failing. */
+  points_forfeited?: number;
+  /** `sort_by` of the stage to play next; null means that was the last one. */
+  next_stage?: number | null;
+  /** ISO-8601 lockout deadline, present on a loss. */
+  blocked_until?: string | null;
 }
 
 /* ------------------------------------------------------------------ *

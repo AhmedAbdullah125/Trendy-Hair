@@ -4,7 +4,8 @@ import Cookies from 'js-cookie';
 import { API_BASE_URL } from '../../lib/apiConfig';
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import type { ApiEnvelope, ApiStartStageData } from '@/lib/apiTypes';
-import { ApiResultError, isApiResultError, unwrapEnvelope } from '@/lib/apiResult';
+import { getApiErrorMessage } from '@/lib/apiTypes';
+import { ApiResultError, getApiCode, getApiItems, unwrapEnvelope } from '@/lib/apiResult';
 import type { StageQuestion } from '../../types';
 
 /** Normalised result of starting a stage. */
@@ -17,50 +18,74 @@ export interface StartStageResult {
 
 /** Why a stage could not be started. */
 export type StartStageFailure =
-  /** Replay interval has not elapsed yet. */
-  | { kind: 'cooldown'; message: string; canPlayAt: string | null; remainingMinutes: number }
-  /** An earlier stage has not been completed with a perfect score. */
-  | { kind: 'locked'; message: string }
-  /** The stage exists but has no active questions. */
+  /** Replay interval after banking has not elapsed yet. */
+  | { kind: 'cooldown'; message: string; untilMs: number | null; remainingMinutes: number }
+  /**
+   * Locked out after losing a run. A different timer from `cooldown` —
+   * `competition_block_minutes` rather than `competition_interval_minutes`.
+   */
+  | { kind: 'blocked'; message: string; untilMs: number | null; remainingMinutes: number }
+  /**
+   * The ladder relocked, so the next run has to start at stage 1. Normal after
+   * banking a run — not an error state.
+   */
+  | { kind: 'restart'; message: string }
+  /** An attempt is already open on another stage. */
+  | { kind: 'attemptActive'; message: string; attemptId: number | null }
+  /** The stage is misconfigured — no questions, or fewer than it needs. */
   | { kind: 'empty'; message: string }
   | { kind: 'unknown'; message: string };
 
-/** Payload the API attaches to a cooldown refusal. */
-interface CooldownItems {
+/** Payload attached to a timed refusal. */
+interface TimedItems {
   can_play_at?: string;
+  blocked_until?: string;
   remaining_minutes?: number;
+  attempt_id?: number;
 }
+
+const toMs = (iso?: string): number | null => {
+  if (!iso) return null;
+  const parsed = Date.parse(iso);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 /**
  * Classifies a failed start into something the UI can act on.
  *
- * The API does not send machine-readable error codes — only a localised string
- * and, for the cooldown, a `can_play_at` payload. So the cooldown is detected by
- * its payload (reliable, language-independent) and the remaining cases fall back
- * to the status code.
+ * Driven by the API's `code` field, which is stable and language-independent —
+ * never by the message, which is localised. Falls back to the timed payloads for
+ * a server that has not been updated yet.
  */
 export const classifyStartFailure = (error: unknown): StartStageFailure => {
-  if (!isApiResultError(error)) {
-    return { kind: 'unknown', message: (error as Error)?.message ?? '' };
+  const message = getApiErrorMessage(error) ?? '';
+  const code = getApiCode(error);
+  const items = getApiItems<TimedItems>(error);
+  const remaining = Number(items.remaining_minutes ?? 0) || 0;
+
+  switch (code) {
+    case 'cooldown_active':
+      return { kind: 'cooldown', message, untilMs: toMs(items.can_play_at), remainingMinutes: remaining };
+    case 'competition_blocked':
+      return { kind: 'blocked', message, untilMs: toMs(items.blocked_until), remainingMinutes: remaining };
+    case 'stage_locked':
+      return { kind: 'restart', message };
+    case 'attempt_active':
+      return { kind: 'attemptActive', message, attemptId: items.attempt_id ?? null };
+    case 'stage_empty':
+    case 'stage_insufficient_questions':
+    case 'stage_not_found':
+      return { kind: 'empty', message };
+    default:
+      break;
   }
 
-  const items = (error.items ?? {}) as CooldownItems;
-  const message = error.message;
-
-  if (items.can_play_at || typeof items.remaining_minutes === 'number') {
-    return {
-      kind: 'cooldown',
-      message,
-      canPlayAt: items.can_play_at ?? null,
-      remainingMinutes: items.remaining_minutes ?? 0,
-    };
+  // No `code` — infer from the payload the older API attached.
+  if (items.blocked_until) {
+    return { kind: 'blocked', message, untilMs: toMs(items.blocked_until), remainingMinutes: remaining };
   }
-
-  if (error.statusCode === 422) {
-    // Both "finish the previous stage" and "this stage has no questions" are
-    // 422s. They are told apart by message because nothing else distinguishes
-    // them — see BACKEND_ISSUES.md, which asks for error codes.
-    return { kind: 'locked', message };
+  if (items.can_play_at || items.remaining_minutes !== undefined) {
+    return { kind: 'cooldown', message, untilMs: toMs(items.can_play_at), remainingMinutes: remaining };
   }
 
   return { kind: 'unknown', message };

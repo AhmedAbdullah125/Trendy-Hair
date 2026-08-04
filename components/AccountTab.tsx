@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Order } from '../App';
 import { Product } from '../types';
 import { useGetProfile } from './requests/useGetProfile';
+import { POINTS_LABEL, formatDinars, readWallet } from '../lib/points';
 import AccountMenu from './account/AccountMenu';
 import EditAccountForm from './account/EditAccountForm';
 import WalletDetailsPage from './account/WalletDetailsPage';
@@ -34,8 +35,9 @@ const AccountTab: React.FC<AccountTabProps> = ({
   // Fetch profile data from API
   const { data: profileData, isLoading: profileLoading, error: profileError } = useGetProfile('ar');
 
-  // Derive gameBalance from profile wallet
-  const gameBalance = profileData?.wallet;
+  // The wallet holds points, not dinars — see lib/points.ts.
+  const wallet = readWallet(profileData);
+  const gameBalance = Math.round(wallet.points);
 
   // Use profile data or fallback
   const currentUser = useMemo(() => {
@@ -45,7 +47,7 @@ const AccountTab: React.FC<AccountTabProps> = ({
         phone: profileData.phone || '',
         email: profileData.email || '',
         photo: profileData.photo || '',
-        wallet: profileData.wallet || '0.00'
+        wallet: String(profileData.wallet ?? '0')
       };
     }
     return { name: '', phone: '', email: '', photo: '', wallet: '0.00' };
@@ -118,10 +120,11 @@ const AccountTab: React.FC<AccountTabProps> = ({
           path="wallet/rewards"
           element={
             <WalletDetailsPage
-              title="محفظة الجوائز"
-              balance={gameBalance ?? '0.00'}
-              currencyLabel="د.ك"
-              explanation="رصيد الجوائز يأتي من الجوائز التي تربحينها من اللعب، ويمكن استخدامه عند إتمام الطلب."
+              title="محفظة النقاط"
+              balance={gameBalance.toLocaleString('en-US')}
+              currencyLabel={POINTS_LABEL}
+              secondaryLabel={`تساوي ${formatDinars(wallet.dinars)}`}
+              explanation={`تكسبين النقاط من مشترياتك ومن المسابقة، وكل ${wallet.rate} نقطة تساوي 1 د.ك عند إتمام الطلب.`}
               navigate={navigate}
             />
           }

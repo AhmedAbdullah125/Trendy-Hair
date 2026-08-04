@@ -16,6 +16,11 @@ export interface Stage {
   questionTime?: number;
   /** Only set for API-driven stages (`useGetCompetitionStages`). */
   questionsCount?: number;
+  /**
+   * Ladder position. `submit` reports the next stage by this value, not by id,
+   * so it is needed to resolve where the run goes next.
+   */
+  sortBy?: number;
   questions: Question[];
 }
 
@@ -46,15 +51,15 @@ export enum GameState {
   WITHDRAWN = 'WITHDRAWN'
 }
 
-export interface PlayerState {
-  currentStageIndex: number;
-  currentQuestionIndex: number;
-  rewardsEarned: boolean[];
-  lastLossTimestamp: number | null;
-  lastWinDate: string | null; // Format: YYYY-MM-DD
-  lastWinTimestamp?: number | null; // New: For minute-based win cooldowns
-  lastWonStageIndex: number | null; // Index of the stage reward achieved
-}
+/*
+ * `PlayerState` used to live here: a client-side model of stage progress,
+ * per-stage rewards and locally enforced win/loss cooldowns.
+ *
+ * The competition is now a server-driven stake-or-bank ladder — points are
+ * staked into a pot and only banked on withdraw, and both the pot and the
+ * lockout belong to the API. `PlayTab` keeps only its position in the run
+ * (`RunPosition`), so this type described a game that no longer exists.
+ */
 
 export interface Category {
   id: string;

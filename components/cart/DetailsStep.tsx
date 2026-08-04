@@ -4,6 +4,7 @@ import { useGetProfile } from "../requests/useGetProfile";
 import { useGetGovernorates } from "../requests/useGetGovernorates";
 import { useGetCities } from "../requests/useGetCities";
 
+import { dinarsToPoints, formatDinars, formatPoints, readWallet } from "../../lib/points";
 import type { AddressForm } from "./types";
 
 type Props = {
@@ -54,8 +55,10 @@ const DetailsStep: React.FC<Props> = ({
     const { data: governoratesData, isLoading: governoratesLoading } = useGetGovernorates('ar');
     const { data: citiesData, isLoading: citiesLoading } = useGetCities('ar', addressForm.governorate);
 
-    // Derive game balance from profile wallet
-    const gameBalance = parseFloat(profileData?.wallet || '0');
+    // The wallet holds points, and only part of it may be spendable — money
+    // promised to unpaid orders is reserved. `canRedeem` also folds in the
+    // dashboard's minimum, which the client cannot work out on its own.
+    const wallet = readWallet(profileData);
 
     // Pre-fill name from profile
     React.useEffect(() => {
@@ -164,12 +167,14 @@ const DetailsStep: React.FC<Props> = ({
                                 <span className="text-sm font-bold text-app-text">رصيد الجوائز</span>
                             </div>
                             <div className="text-right">
-                                <span className="text-xs font-bold text-app-text block">{gameBalance.toFixed(3)} د.ك</span>
-                                <span className="text-[10px] text-app-textSec">متاح</span>
+                                <span className="text-xs font-bold text-app-text block">{formatPoints(wallet.points)}</span>
+                                <span className="text-[10px] text-app-textSec">
+                                    ({formatDinars(wallet.dinars)})
+                                </span>
                             </div>
                         </div>
 
-                        {gameBalance > 0 ? (
+                        {wallet.canRedeem ? (
                             <div className="bg-app-bg rounded-xl p-3">
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="text-xs text-app-textSec flex items-center gap-1">
@@ -192,23 +197,34 @@ const DetailsStep: React.FC<Props> = ({
                                             type="range"
                                             min="0"
                                             max={maxGameRedemption}
-                                            step="0.100"
+                                            // One point, not a fixed 0.100 — at 100 points/د.ك a
+                                            // 0.15 balance would otherwise only offer 0 or 0.10.
+                                            step={1 / wallet.rate}
                                             value={gameAmountToUse}
                                             onChange={(e) => setGameAmountToUse(parseFloat(e.target.value))}
                                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-app-gold"
                                         />
                                         <div className="text-center mt-1 text-xs font-bold text-app-text">
                                             خصم: {gameAmountToUse.toFixed(3)} د.ك
+                                            <span className="text-app-textSec font-normal">
+                                                {' '}({dinarsToPoints(gameAmountToUse, wallet.rate)} نقطة)
+                                            </span>
                                         </div>
                                     </div>
                                 )}
 
                                 <p className="text-[10px] text-app-textSec mt-1">
-                                    يمكن استخدام رصيد الجوائز لخصم حتى 5 د.ك على كل طلب، مهما كانت قيمة الطلب.
+                                    كل {wallet.rate} نقطة تساوي 1 د.ك، ويمكن خصم حتى {maxGameRedemption.toFixed(3)} د.ك على هذا الطلب.
                                 </p>
                             </div>
+                        ) : wallet.fullyReserved ? (
+                            // A positive balance with nothing spendable is not "no
+                            // balance" — the points are held by an unpaid order.
+                            <p className="text-xs text-app-textSec italic">
+                                رصيدك محجوز حالياً لطلب قيد الانتظار، ويمكن استخدامه بعد استلامه أو إلغائه.
+                            </p>
                         ) : (
-                            <p className="text-xs text-app-textSec italic">لا يوجد رصيد متاح</p>
+                            <p className="text-xs text-app-textSec italic">لا يوجد رصيد كافٍ للاستخدام</p>
                         )}
                     </div>
 

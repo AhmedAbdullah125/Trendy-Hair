@@ -87,8 +87,8 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                         <span className="text-[11px] font-bold text-app-text leading-tight">رصيد الجوائز</span>
                     </div>
                     <div className="z-10">
-                        <span className="text-lg font-bold text-app-gold block leading-none mb-0.5">{gameBalance} دك</span>
-                        <span className="text-[8px] font-medium text-app-textSec block leading-tight">العبي للحصول على المزيد من رصيد الجوائز</span>
+                        <span className="text-lg font-bold text-app-gold block leading-none mb-0.5">{gameBalance} نقطة</span>
+                        <span className="text-[8px] font-medium text-app-textSec block leading-tight">العبي واشتري للحصول على المزيد من النقاط</span>
                     </div>
                 </div>
 

@@ -4,12 +4,21 @@ import { useGetWalletTransactions, ApiWalletTransaction } from '../requests/useG
 
 interface WalletDetailsPageProps {
     title: string;
-    /** Rendered as-is; may be the raw `wallet` decimal string from the API. */
+    /** Rendered as-is; the ledger is denominated in whole points. */
     balance: string | number;
     currencyLabel: string;
+    /** Shown under the balance, e.g. the dinar equivalent. */
+    secondaryLabel?: string;
     explanation: string;
     navigate: (path: string) => void;
 }
+
+/**
+ * The ledger is in points, which are whole numbers — the old `toFixed(3)`
+ * rendered a 15-point movement as "15.000", reading as dinars.
+ */
+const formatAmount = (value: number): string =>
+    Math.round(Number(value) || 0).toLocaleString('en-US');
 
 /** Raw ledger keys -> Arabic descriptions. */
 const describeAction = (action: string): string => {
@@ -29,6 +38,7 @@ const WalletDetailsPage: React.FC<WalletDetailsPageProps> = ({
     title,
     balance,
     currencyLabel,
+    secondaryLabel,
     explanation,
     navigate
 }) => {
@@ -62,6 +72,9 @@ const WalletDetailsPage: React.FC<WalletDetailsPageProps> = ({
                     <span>{balance}</span>
                     <span className="text-base mb-1.5 opacity-80">{currencyLabel}</span>
                 </div>
+                {secondaryLabel && (
+                    <p className="text-xs font-bold text-app-textSec -mt-2 mb-3">{secondaryLabel}</p>
+                )}
                 <p className="text-xs text-app-textSec leading-relaxed max-w-[80%] mx-auto">
                     {explanation}
                 </p>
@@ -115,7 +128,7 @@ const WalletDetailsPage: React.FC<WalletDetailsPageProps> = ({
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-1">
                                         <span className={`text-lg font-bold font-alexandria ${isCredit ? 'text-green-600' : 'text-red-500'}`}>
-                                            {isCredit ? '+' : '−'}{Math.abs(tx.amount).toFixed(3)} {currencyLabel}
+                                            {isCredit ? '+' : '−'}{formatAmount(Math.abs(tx.amount))} {currencyLabel}
                                         </span>
                                         <span className="text-[10px] font-bold text-app-textSec bg-app-bg px-2 py-1 rounded-lg">
                                             {formatDate(tx.created_at)}
@@ -127,7 +140,7 @@ const WalletDetailsPage: React.FC<WalletDetailsPageProps> = ({
                                     </p>
 
                                     <span className="text-[10px] text-app-textSec">
-                                        الرصيد بعد العملية: {tx.balance.toFixed(3)} {currencyLabel}
+                                        الرصيد بعد العملية: {formatAmount(tx.balance)} {currencyLabel}
                                     </span>
                                 </div>
                             </div>

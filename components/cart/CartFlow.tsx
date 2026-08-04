@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CartItem, Order } from "../../App";
-import { GAME_REDEMPTION_CAP_KD } from "../../constants";
 import { useDeleteCartItem } from "../requests/useDeleteCartItem";
 import { useGetCities } from "../requests/useGetCities";
 import CartStep from "./CartStep";
@@ -12,6 +11,7 @@ import { createOrder } from "../requests/useCreateOrder";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useGetProfile } from "../requests/useGetProfile";
+import { readWallet } from "../../lib/points";
 
 interface CartFlowProps {
     cartItems: CartItem[];
@@ -43,7 +43,9 @@ const CartFlow: React.FC<CartFlowProps> = ({
 }) => {
     // Derive game balance from profile API (stays in sync after reward claims)
     const { data: profileData } = useGetProfile('ar');
-    const gameBalance = parseFloat(profileData?.wallet || '0');
+    // Points, not dinars — and only the spendable slice is offerable, since
+    // unpaid orders reserve the rest server-side.
+    const wallet = readWallet(profileData);
     const [step, setStep] = useState<CheckoutStep>("cart");
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<"cash" | "visa" | "knet">("visa");
@@ -98,7 +100,12 @@ const CartFlow: React.FC<CartFlowProps> = ({
         return 2.0; // Fallback if city not found
     }, [addressForm.area, citiesData]);
 
-    const maxGameRedemption = useMemo(() => Math.min(gameBalance, GAME_REDEMPTION_CAP_KD), [gameBalance]);
+    // `wallet_spendable` is the server's own figure: dinars, already net of the
+    // points reserved by unpaid orders. It is the whole limit — the old
+    // `GAME_REDEMPTION_CAP_KD` compared a dinar cap against a points balance,
+    // and any real per-order cap lives in `rewards.max_wallet_redemption_per_order`
+    // server-side, which is not exposed to clients.
+    const maxGameRedemption = wallet.spendableDinars;
 
     // Loyalty points were removed: there is no loyalty balance on the server
     // and the deduction was never sent with the order, so the screen showed a
@@ -185,13 +192,15 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
         try {
             const result = await createOrder(formData, lang, setStep, setIsProcessing, qc, paymentMethod);
+            const items = result?.items;
 
-            // Derive the credit the server really granted from the total it
-            // charged; `wallet_amount` itself is not in the response.
-            const serverTotal = parseFloat(result?.items?.total ?? "");
-            if (Number.isFinite(serverTotal)) {
-                const granted = (subtotal + deliveryFee) - serverTotal;
-                setAppliedWallet(Math.max(0, parseFloat(granted.toFixed(3))));
+            if (items?.order_number) setLastOrderId(items.order_number);
+
+            // The response now reports the credit actually applied, so there is
+            // no need to infer it by subtracting the total from a local subtotal.
+            const applied = Number(items?.wallet_amount);
+            if (Number.isFinite(applied)) {
+                setAppliedWallet(applied);
             } else {
                 setAppliedWallet(null);
             }

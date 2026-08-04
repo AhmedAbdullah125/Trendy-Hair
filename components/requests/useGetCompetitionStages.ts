@@ -14,6 +14,12 @@ import type { Stage } from '../../types';
 export interface CompetitionStagesResult {
   settings: ApiCompetitionSettings;
   stages: Stage[];
+  /** Points staked on a run in progress and still at risk. */
+  pendingPoints: number;
+  /** Whether there is a pot to bank right now. */
+  canWithdraw: boolean;
+  /** Epoch ms until the post-loss lockout expires, or null when free to play. */
+  blockedUntil: number | null;
 }
 
 /**
@@ -40,9 +46,13 @@ const fetchCompetitionStages = async (): Promise<CompetitionStagesResult> => {
   if (!items) throw new Error('No competition stages returned');
 
   const stages = [...(items.stages || [])].sort((a, b) => a.sort_by - b.sort_by);
+  const blocked = items.blocked_until ? Date.parse(items.blocked_until) : NaN;
 
   return {
     settings: items.settings,
+    pendingPoints: Number(items.pending_points ?? 0) || 0,
+    canWithdraw: Boolean(items.can_withdraw),
+    blockedUntil: Number.isFinite(blocked) ? blocked : null,
     stages: stages.map((s) => ({
       id: s.id,
       name: s.name,
@@ -50,6 +60,8 @@ const fetchCompetitionStages = async (): Promise<CompetitionStagesResult> => {
       rewardName: s.prize,
       questionTime: s.question_time,
       questionsCount: s.questions_count,
+      // `submit` reports `next_stage` as a sort_by, so keep it to resolve it.
+      sortBy: s.sort_by,
       questions: [], // Questions fetched separately via useGetRandomQuestion
     })),
   };
