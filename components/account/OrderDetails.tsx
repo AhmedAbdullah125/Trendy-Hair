@@ -244,6 +244,23 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ navigate }) => {
                                     {(orderData.payment_status === 'paid' || orderData.payment_status === 'مدفوع') ? 'مدفوع' : 'قيد الانتظار'}
                                 </span>
                             </div>
+
+                            {/*
+                              The prize credit is only taken once the order is
+                              paid, so while it is pending the amount is reserved
+                              rather than spent.
+                            */}
+                            {Number(orderData.wallet_amount) > 0 && (
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-app-textSec">رصيد الجوائز:</span>
+                                    <span className="font-medium text-app-text">
+                                        {Number(orderData.wallet_amount).toFixed(3)} د.ك
+                                        {(orderData.payment_status === 'paid' || orderData.payment_status === 'مدفوع')
+                                            ? ' (مخصوم)'
+                                            : ' (محجوز حتى الاستلام)'}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

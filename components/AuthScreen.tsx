@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Phone, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { loginRequest } from './requests/loginRequest';
 import { registerRequest } from './requests/register';
+import PhoneField from './PhoneField';
+import { hasEnoughDigits, MIN_NATIONAL_DIGITS } from '../lib/phone';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -20,8 +22,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  // The control keeps the dial code in the field, so validating the national
+  // part means knowing how many of those digits are the prefix.
+  const [dialCode, setDialCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handlePhoneChange = (value: string, code: string) => {
+    setPhone(value);
+    setDialCode(code);
+  };
+
+  /** True once the number carries a plausible national part. */
+  const phoneIsUsable = hasEnoughDigits(phone, dialCode.length);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,9 +45,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    const phoneDigits = phone.replace(/[^0-9]/g, '');
-    if (phoneDigits.length < 8) {
-      setError('رقم الهاتف يجب أن يكون 8 أرقام على الأقل');
+    if (!phoneIsUsable) {
+      setError(`رقم الهاتف يجب أن يكون ${MIN_NATIONAL_DIGITS} أرقام على الأقل`);
       return;
     }
 
@@ -52,7 +64,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       };
 
       await registerRequest(
-        { name, phone, password },
+        { name, phone, password, dialCode },
         setIsLoading,
         'ar',
         routerAdapter
@@ -72,11 +84,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-
-    // Check minimum length (10 digits excluding '+')
-    const phoneDigits = phone.replace(/[^0-9]/g, '');
-    if (phoneDigits.length < 8) {
-      setError('رقم الهاتف يجب أن يكون 8 أرقام على الأقل');
+    if (!phoneIsUsable) {
+      setError(`رقم الهاتف يجب أن يكون ${MIN_NATIONAL_DIGITS} أرقام على الأقل`);
       return;
     }
 
@@ -89,7 +98,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       };
 
       await loginRequest(
-        { phone, password },
+        { phone, password, dialCode },
         setIsLoading,
         'ar',
         routerAdapter
@@ -132,19 +141,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               </div>
             )}
 
-            {/* Phone Field */}
-            <div className="relative">
-              <input
-                type="tel"
-                placeholder="رقم الهاتف"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-4 bg-app-bg border border-app-card rounded-2xl outline-none focus:border-app-gold text-right pr-12 text-app-text font-medium"
-                dir="ltr"
-                disabled={isLoading}
-              />
-              <Phone className="absolute right-4 top-1/2 -translate-y-1/2 text-app-textSec" size={20} />
-            </div>
+            {/* Phone Field — country selector prefills the dial code */}
+            <PhoneField
+              value={phone}
+              onChange={handlePhoneChange}
+              disabled={isLoading}
+            />
 
             {/* Password Field */}
             <div className="relative">

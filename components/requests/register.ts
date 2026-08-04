@@ -3,12 +3,15 @@ import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
 import type { ApiAuthPayload, ApiEnvelope } from '@/lib/apiTypes';
 import { getApiErrorMessage } from '@/lib/apiTypes';
+import { toE164 } from '@/lib/phone';
 import type { RouterLike, SetLoading } from './loginRequest';
 
 export interface RegisterCredentials {
     name: string;
     phone: string;
     password: string;
+    /** Dial code of the selected country, stripped before sending. */
+    dialCode?: string;
 }
 
 export async function registerRequest(
@@ -21,7 +24,8 @@ export async function registerRequest(
     const url = `${API_BASE_URL}/v1/register`;
     const formData = new FormData();
     formData.append('name', data.name);
-    formData.append('phone', data.phone.split("+").join(""));
+    // E.164 with the leading `+` — the format the API stores. See lib/phone.ts.
+    formData.append('phone', toE164(data.phone, data.dialCode ?? ''));
     formData.append('password', data.password);
     formData.append('grant_type', "password");
     formData.append('client_id', "a0e57322-f1ef-4a3c-84ff-b9a3d852a559");

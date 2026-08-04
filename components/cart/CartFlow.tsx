@@ -60,6 +60,11 @@ const CartFlow: React.FC<CartFlowProps> = ({
 
     const [lastOrderId, setLastOrderId] = useState("");
 
+    // What the server actually applied, which can be less than the slider
+    // offered: pending orders reserve part of the balance, and only the server
+    // knows about that. Null until an order comes back.
+    const [appliedWallet, setAppliedWallet] = useState<number | null>(null);
+
     const qc = useQueryClient();
     const delMut = useDeleteCartItem();
 
@@ -162,7 +167,7 @@ const CartFlow: React.FC<CartFlowProps> = ({
         );
     };
     const navigate = useNavigate();
-    const handlePay = () => {
+    const handlePay = async () => {
         if (!addressForm.governorate || !addressForm.area || !addressForm.details) {
             toast.error("يرجى إكمال جميع بيانات العنوان");
             return;
@@ -177,7 +182,23 @@ const CartFlow: React.FC<CartFlowProps> = ({
         formData.append("phone", addressForm.phone);
         formData.append("payment_type", paymentMethod);
         formData.append("notes", "");
-        createOrder(formData, lang, setStep, setIsProcessing, qc, paymentMethod);
+
+        try {
+            const result = await createOrder(formData, lang, setStep, setIsProcessing, qc, paymentMethod);
+
+            // Derive the credit the server really granted from the total it
+            // charged; `wallet_amount` itself is not in the response.
+            const serverTotal = parseFloat(result?.items?.total ?? "");
+            if (Number.isFinite(serverTotal)) {
+                const granted = (subtotal + deliveryFee) - serverTotal;
+                setAppliedWallet(Math.max(0, parseFloat(granted.toFixed(3))));
+            } else {
+                setAppliedWallet(null);
+            }
+        } catch {
+            // createOrder already surfaced the failure to the user.
+            setAppliedWallet(null);
+        }
     };
 
     if (step === "details") {
@@ -208,6 +229,8 @@ const CartFlow: React.FC<CartFlowProps> = ({
             <SuccessStep
                 lastOrderId={lastOrderId}
                 onClose={onClose}
+                walletAmount={appliedWallet ?? (useGameBalance ? finalGameDeduction : 0)}
+                requestedWalletAmount={useGameBalance ? finalGameDeduction : 0}
             />
         );
     }

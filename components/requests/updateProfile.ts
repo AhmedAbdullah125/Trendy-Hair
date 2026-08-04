@@ -16,6 +16,9 @@ async function updateProfileRequest(
     const url = `${API_BASE_URL}/v1/update-profile`;
     const formData = new FormData();
 
+    // Already normalised to a national number by the caller (see lib/phone.ts);
+    // sending the control's `+965…` verbatim would rewrite the stored value into
+    // a shape login cannot match.
     if (data.phone) formData.append('phone', data.phone);
     if (data.name) formData.append('name', data.name);
     if (data.email) formData.append('email', data.email);

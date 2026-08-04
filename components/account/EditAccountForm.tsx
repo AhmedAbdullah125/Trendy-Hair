@@ -3,6 +3,7 @@ import { ArrowRight, User, Phone, Mail, Edit2, Save, CheckCircle2 } from 'lucide
 import { useUpdateProfile } from '../requests/updateProfile';
 import { PhoneInput } from 'react-international-phone';
 import 'react-international-phone/style.css';
+import { toE164 } from '../../lib/phone';
 
 interface EditAccountFormProps {
     currentUser: {
@@ -18,6 +19,8 @@ interface EditAccountFormProps {
 const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate, lang = 'ar' }) => {
     const [name, setName] = useState(currentUser.name || '');
     const [phone, setPhone] = useState(currentUser.phone || '');
+    // Stripped back off before saving — the API stores national numbers.
+    const [dialCode, setDialCode] = useState('');
     const [email, setEmail] = useState(currentUser.email || '');
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -82,8 +85,9 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
         }
 
         // Prepare update data
-        // Clean phone number: remove spaces, dashes, parentheses but keep +
-        const cleanedPhone = phone.replace(/[\s\(\)-]/g, '');
+        // E.164 with the `+`, matching what sign-up writes — saving any other
+        // shape would rewrite the stored value into one login cannot match.
+        const cleanedPhone = toE164(phone, dialCode);
         const updateData: any = { name, phone: cleanedPhone };
         if (email.trim()) updateData.email = email;
         if (photoFile) updateData.photo = photoFile;
@@ -170,7 +174,7 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
                         <PhoneInput
                             defaultCountry="kw"
                             value={phone}
-                            onChange={(v) => setPhone(v)}
+                            onChange={(v, meta) => { setPhone(v); setDialCode(meta.country.dialCode); }}
                             inputClassName={`!w-full !p-4 !bg-white !border !rounded-2xl !outline-none !focus:border-app-gold !text-left !pl-[60px] !text-app-text !font-medium !h-auto ${errors.phone ? '!border-red-500' : '!border-app-card'}`}
                             countrySelectorStyleProps={{
                                 buttonClassName: "!border-none !bg-transparent !absolute !left-0 !top-1/2 !-translate-y-1/2 !z-10 !h-full !flex !items-center !justify-center !px-3",

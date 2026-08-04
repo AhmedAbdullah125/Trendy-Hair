@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GameState, PlayerState, StageQuestion, CollectedAnswer } from '../types';
 import { LOCK_DURATION_MS, STORAGE_KEYS } from '../constants';
 import { useGetCompetitionStages } from './requests/useGetCompetitionStages';
-import { useStartStage } from './requests/useStartStage';
+import { useStartStage, classifyStartFailure } from './requests/useStartStage';
 import { useSubmitAttempt } from './requests/useSubmitAttempt';
+import { useRewardStatus } from './requests/useRewardStatus';
+import { toast } from 'sonner';
 import { Trophy, Play, Clock, Lock, CheckCircle2, Timer, AlertCircle, LogOut, Loader2, ChevronLeft } from 'lucide-react';
 import { audioService } from '../services/audioService';
 import GameScreen from './GameScreen';
@@ -76,6 +78,14 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
   const questionStartTimeRef = useRef<number>(Date.now());
   const [now, setNow] = useState(Date.now());
 
+  // When the server refuses a start, it owns the countdown — not a local
+  // timestamp. Null means "no server-imposed wait".
+  const [serverCooldownUntil, setServerCooldownUntil] = useState<number | null>(null);
+  // Why the last run ended, shown on the cooldown screen.
+  const [lastOutcome, setLastOutcome] = useState<{ correct: number; total: number } | null>(null);
+  // A stage that is locked behind an earlier one, rather than behind the clock.
+  const [lockedMessage, setLockedMessage] = useState<string | null>(null);
+
   const startStageMutation = useStartStage();
   const submitAttemptMutation = useSubmitAttempt();
 
@@ -135,8 +145,44 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
     });
   }, [gameStages.length]);
 
+  // Which stages are actually cleared is the server's call. localStorage was the
+  // only source before, so a cleared cache or a second device let the player
+  // resume at a stage the API would then refuse to start.
+  const { data: rewardLevels } = useRewardStatus();
+
+  useEffect(() => {
+    if (!rewardLevels || gameStages.length === 0) return;
+
+    setPlayerState(prev => {
+      // `levels` can be shorter than the stage list — config defines a fixed
+      // number of tiers. A stage with no matching level stays locked.
+      const fromServer = new Array(gameStages.length)
+        .fill(false)
+        .map((_, i) => Boolean(rewardLevels[i]?.earned));
+
+      const unchanged =
+        prev.rewardsEarned.length === fromServer.length &&
+        prev.rewardsEarned.every((earned, i) => earned === fromServer[i]);
+
+      if (unchanged) return prev;
+
+      const next = { ...prev, rewardsEarned: fromServer };
+      localStorage.setItem(INTERNAL_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [rewardLevels, gameStages.length]);
+
   // Auto-unlock cooldowns
   useEffect(() => {
+    // A server-imposed wait outranks the local timestamps below.
+    if (serverCooldownUntil !== null) {
+      if (now >= serverCooldownUntil) {
+        setServerCooldownUntil(null);
+        setGameState(GameState.IDLE);
+      }
+      return;
+    }
+
     const cooldownMs = (gameSettings.cooldownLossMinutes * 60 * 1000) || LOCK_DURATION_MS;
     if (gameState === GameState.LOST_COOLDOWN && playerState.lastLossTimestamp) {
       if (now - playerState.lastLossTimestamp >= cooldownMs) setGameState(GameState.IDLE);
@@ -147,7 +193,7 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
       if (playerState.lastWinTimestamp && now - playerState.lastWinTimestamp >= winMs) setGameState(GameState.IDLE);
       else if (playerState.lastWinDate && playerState.lastWinDate !== new Date().toDateString()) setGameState(GameState.IDLE);
     }
-  }, [now, gameState, playerState.lastLossTimestamp, playerState.lastWinTimestamp, playerState.lastWinDate, gameSettings.cooldownLossMinutes, gameSettings.cooldownWinMinutes]);
+  }, [now, gameState, serverCooldownUntil, playerState.lastLossTimestamp, playerState.lastWinTimestamp, playerState.lastWinDate, gameSettings.cooldownLossMinutes, gameSettings.cooldownWinMinutes]);
 
   // Timer while playing
   useEffect(() => {
@@ -167,9 +213,10 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
 
   const saveState = (s: PlayerState) => { setPlayerState(s); localStorage.setItem(INTERNAL_STORAGE_KEY, JSON.stringify(s)); };
 
-  const handleGameOver = () => {
+  const handleGameOver = (outcome: { correct: number; total: number } | null = null) => {
     if (timerRef.current) clearInterval(timerRef.current);
     audioService.playFailure();
+    setLastOutcome(outcome);
     saveState({ ...playerState, rewardsEarned: new Array(gameStages.length).fill(false), lastLossTimestamp: Date.now() });
     setGameState(GameState.LOST_COOLDOWN);
   };
@@ -184,11 +231,45 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
     setGameState(GameState.WON_DAILY);
   };
 
+  /**
+   * Handles a refused start.
+   *
+   * Every one of these used to be swallowed, which is what made the screen look
+   * frozen: the spinner stopped and nothing else changed.
+   */
+  const handleStartFailure = (error: unknown) => {
+    const failure = classifyStartFailure(error);
+
+    switch (failure.kind) {
+      case 'cooldown': {
+        // The server owns this clock, so drive the countdown from its remaining
+        // time rather than a locally stored timestamp.
+        setServerCooldownUntil(Date.now() + failure.remainingMinutes * 60 * 1000);
+        setShowMilestoneModal(false);
+        setGameState(GameState.LOST_COOLDOWN);
+        break;
+      }
+      case 'locked': {
+        setLockedMessage(failure.message);
+        setShowMilestoneModal(false);
+        setGameState(GameState.IDLE);
+        if (failure.message) toast.error(failure.message);
+        break;
+      }
+      default: {
+        setShowMilestoneModal(false);
+        setGameState(GameState.IDLE);
+        toast.error(failure.message || 'تعذّر بدء المرحلة. يرجى المحاولة مجدداً.');
+      }
+    }
+  };
+
   // Launch a stage via API
   const launchStage = (stageIndex: number, onDone?: () => void) => {
     const stageId = gameStages[stageIndex]?.id;
     if (!stageId) return;
     setIsStartingStage(true);
+    setLockedMessage(null);
     startStageMutation.mutate(stageId, {
       onSuccess: (data) => {
         setStageQuestions(data.questions);
@@ -199,14 +280,23 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
         setIsStartingStage(false);
         onDone?.();
       },
-      onError: () => { setIsStartingStage(false); },
+      onError: (error) => {
+        setIsStartingStage(false);
+        handleStartFailure(error);
+      },
     });
   };
 
   const startGame = () => {
     if (isBalanceCapped) return;
     const cooldownMs = (gameSettings.cooldownLossMinutes * 60 * 1000) || LOCK_DURATION_MS;
-    if (playerState.lastLossTimestamp && Date.now() - playerState.lastLossTimestamp < cooldownMs) return;
+    if (playerState.lastLossTimestamp && Date.now() - playerState.lastLossTimestamp < cooldownMs) {
+      // Show the wait rather than ignoring the tap.
+      setGameState(GameState.LOST_COOLDOWN);
+      return;
+    }
+    setLastOutcome(null);
+    setLockedMessage(null);
     const firstUnearned = playerState.rewardsEarned.findIndex(r => !r);
     if (firstUnearned === -1) { setGameState(GameState.WON_DAILY); return; }
 
@@ -245,8 +335,21 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
       const attemptId = currentAttemptId;
 
       submitAttemptMutation.mutate({ attemptId, answers: newCollected }, {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setIsSubmitting(false);
+
+          // A 200 only means the answers were recorded, not that they were
+          // right. Advancing needs every answer correct — the API refuses the
+          // next stage otherwise — so anything short of that is a loss.
+          const attempt = data?.attempt;
+          const total = attempt?.total_questions ?? 0;
+          const correct = attempt?.correct_answers ?? 0;
+
+          if (total <= 0 || correct < total) {
+            handleGameOver({ correct, total });
+            return;
+          }
+
           const isLastStage = playerState.currentStageIndex >= gameStages.length - 1;
           if (isLastStage) {
             handleGameWin();
@@ -287,6 +390,9 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
   };
 
   const cooldownTimeText = useMemo(() => {
+    // The server told us exactly how long is left; trust that over local state.
+    if (serverCooldownUntil !== null) return formatCountdown(serverCooldownUntil - now);
+
     const lossMs = (gameSettings.cooldownLossMinutes * 60 * 1000) || LOCK_DURATION_MS;
     if (gameState === GameState.LOST_COOLDOWN && playerState.lastLossTimestamp)
       return formatCountdown((playerState.lastLossTimestamp + lossMs) - now);
@@ -296,7 +402,7 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
       return '00:00:00';
     }
     return null;
-  }, [now, gameState, playerState.lastLossTimestamp, playerState.lastWinTimestamp, gameSettings.cooldownLossMinutes, gameSettings.cooldownWinMinutes]);
+  }, [now, gameState, serverCooldownUntil, playerState.lastLossTimestamp, playerState.lastWinTimestamp, gameSettings.cooldownLossMinutes, gameSettings.cooldownWinMinutes]);
 
   const getTotalWon = () => {
     if (playerState.lastWonStageIndex !== null) {
@@ -356,6 +462,9 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
           <span>{isStartingStage ? 'جاري التحميل...' : 'ابدئي اللعب الآن'}</span>
         </button>
         {isBalanceCapped && <p className="text-red-500 text-xs font-bold mt-3 text-center animate-fadeIn">يجب انفاق رصيد الجوائز لتتمكني من اللعب</p>}
+        {lockedMessage && !isBalanceCapped && (
+          <p className="text-red-500 text-xs font-bold mt-3 text-center animate-fadeIn">{lockedMessage}</p>
+        )}
       </div>
     );
   }
@@ -365,7 +474,17 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
       <div className="flex flex-col h-full px-6 pt-12 items-center justify-center pb-24 text-center animate-fadeIn font-alexandria">
         <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6 text-red-400"><Clock size={48} /></div>
         <h2 className="text-2xl font-bold text-app-text mb-2">حظ أوفر المرة القادمة</h2>
-        <p className="text-app-textSec mb-8 px-4">للأسف إجابتك كانت خاطئة أو انتهى الوقت.</p>
+        <p className="text-app-textSec mb-2 px-4">
+          {lastOutcome && lastOutcome.total > 0
+            ? 'يجب الإجابة على جميع الأسئلة بشكل صحيح لفتح المرحلة التالية.'
+            : 'للأسف إجابتك كانت خاطئة أو انتهى الوقت.'}
+        </p>
+        {lastOutcome && lastOutcome.total > 0 && (
+          <p className="text-app-goldDark font-bold mb-8 tabular-nums" dir="ltr">
+            {lastOutcome.correct} / {lastOutcome.total}
+          </p>
+        )}
+        {!(lastOutcome && lastOutcome.total > 0) && <div className="mb-6" />}
         <div className="bg-app-card w-full p-6 rounded-2xl border border-app-gold/20 mb-8">
           <p className="text-sm font-bold text-app-textSec mb-2">يمكنكِ اللعب مجدداً بعد</p>
           <p className="text-3xl font-bold text-app-goldDark tabular-nums" dir="ltr">{cooldownTimeText}</p>
