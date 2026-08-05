@@ -248,7 +248,7 @@ export const INITIAL_GAME_SETTINGS: GameSettings = {
 };
 
 export const INITIAL_CONTENT_SETTINGS: ContentSettings = {
-  techBookingUrl: 'https://wa.me/96599007898'
+  techBookingUrl: 'https://api.whatsapp.com/send?phone=96599007898'
 };
 
 export const INITIAL_DATA: AppData = {

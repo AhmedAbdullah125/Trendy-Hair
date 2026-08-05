@@ -27,8 +27,10 @@ interface WalletTransactionsPayload {
     };
 }
 
+const getAuthToken = () => Cookies.get("token") || localStorage.getItem("token") || "";
+
 const fetchWalletTransactions = async (lang: string): Promise<WalletTransactionsPayload> => {
-    const token = Cookies.get("token");
+    const token = getAuthToken();
 
     const headers: Record<string, string> = { lang };
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -48,10 +50,11 @@ const fetchWalletTransactions = async (lang: string): Promise<WalletTransactions
  * no relation to the balance shown above it.
  */
 export const useGetWalletTransactions = (lang: string): UseQueryResult<WalletTransactionsPayload> => {
+    const token = getAuthToken();
     return useQuery({
-        queryKey: ["wallet-transactions", lang],
+        queryKey: ["wallet-transactions", lang, token],
         queryFn: () => fetchWalletTransactions(lang),
-        enabled: !!Cookies.get("token"),
+        enabled: !!token,
         staleTime: 1000 * 30,
         retry: false,
     });

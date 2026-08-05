@@ -155,6 +155,10 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 {/* Email */}
                 <a
                     href="mailto:Trendhair@info.com"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href = "mailto:Trendhair@info.com";
+                    }}
                     className="flex items-center justify-between p-5 border-b border-app-bg active:bg-app-bg transition-colors cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
@@ -169,6 +173,10 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 {/* Phone */}
                 <a
                     href="tel:+96554647655"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href = "tel:+96554647655";
+                    }}
                     className="flex items-center justify-between p-5 active:bg-app-bg transition-colors cursor-pointer"
                 >
                     <div className="flex items-center gap-4">

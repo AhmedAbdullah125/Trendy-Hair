@@ -5,8 +5,10 @@ import { API_BASE_URL } from "../../lib/apiConfig";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { ApiEnvelope, ApiProductsPage } from "@/lib/apiTypes";
 
+const getAuthToken = () => Cookies.get("token") || localStorage.getItem("token") || "";
+
 const fetchFavourites = async (lang: string, page: number): Promise<ApiProductsPage> => {
-  const token = Cookies.get("token");
+  const token = getAuthToken();
 
   const formData = new FormData();
   formData.append("page_size", String(10));
@@ -27,10 +29,13 @@ const fetchFavourites = async (lang: string, page: number): Promise<ApiProductsP
 export const useGetFavourites = (
   lang: string,
   page: number
-): UseQueryResult<ApiProductsPage> =>
-  useQuery({
-    queryKey: ["favourites", lang, page],
+): UseQueryResult<ApiProductsPage> => {
+  const token = getAuthToken();
+  return useQuery({
+    queryKey: ["favourites", lang, page, token],
     queryFn: () => fetchFavourites(lang, page),
+    enabled: !!token,
     staleTime: 1000 * 5, // 5 seconds
     gcTime: 1000 * 60 * 60, // 1 hour
   });
+};

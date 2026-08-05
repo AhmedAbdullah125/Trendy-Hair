@@ -33,7 +33,7 @@ export interface CompetitionStagesResult {
  * }
  */
 const fetchCompetitionStages = async (): Promise<CompetitionStagesResult> => {
-  const token = Cookies.get('token');
+  const token = Cookies.get('token') || localStorage.getItem('token');
   const headers: Record<string, string> = { lang: 'ar' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -73,11 +73,13 @@ const fetchCompetitionStages = async (): Promise<CompetitionStagesResult> => {
  * Returns { data: { settings, stages }, isLoading, isError }
  * Cached for 5 minutes since stages rarely change mid-session.
  */
-export const useGetCompetitionStages = (): UseQueryResult<CompetitionStagesResult> =>
-  useQuery({
-    queryKey: ['competition-stages'],
+export const useGetCompetitionStages = (): UseQueryResult<CompetitionStagesResult> => {
+  const token = Cookies.get('token') || localStorage.getItem('token') || '';
+  return useQuery({
+    queryKey: ['competition-stages', token],
     queryFn: fetchCompetitionStages,
     staleTime: 1000 * 60 * 5,  // 5 minutes
     gcTime: 1000 * 60 * 60,    // 1 hour
     retry: 2,
   });
+};

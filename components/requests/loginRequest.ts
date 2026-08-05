@@ -1,3 +1,4 @@
+import Cookies from 'js-cookie';
 import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
@@ -110,11 +111,12 @@ export async function loginRequest(
                 localStorage.setItem("refresh_token", tokenData?.refresh_token);
                 // Store user data
                 localStorage.setItem("userId", String(userData?.id));
-                // Set cookie with access_token
+                localStorage.setItem("user", JSON.stringify(userData));
+                // Set cookie with access_token via js-cookie and document.cookie
+                Cookies.set('token', tokenData.access_token, { expires: 7, path: '/' });
                 document.cookie = `token=${encodeURIComponent(tokenData.access_token)}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
 
                 router.push("/");
-                localStorage.setItem("user", JSON.stringify(userData));
             }
             else {
                 // Unverified account: the API answers 200 with

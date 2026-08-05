@@ -20,8 +20,10 @@ interface RewardStatusItems {
   levels?: RewardLevelStatus[];
 }
 
+const getAuthToken = () => Cookies.get("token") || localStorage.getItem("token") || "";
+
 const fetchRewardStatus = async (): Promise<RewardLevelStatus[]> => {
-  const token = Cookies.get('token');
+  const token = getAuthToken();
   const headers: Record<string, string> = { lang: 'ar' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -44,10 +46,12 @@ const fetchRewardStatus = async (): Promise<RewardLevelStatus[]> => {
  * stage list, so callers must treat a missing entry as "not earned" rather than
  * assuming the two line up.
  */
-export const useRewardStatus = (): UseQueryResult<RewardLevelStatus[], unknown> =>
-  useQuery({
-    queryKey: [REWARD_STATUS_QUERY_KEY],
+export const useRewardStatus = (): UseQueryResult<RewardLevelStatus[], unknown> => {
+  const token = getAuthToken();
+  return useQuery({
+    queryKey: [REWARD_STATUS_QUERY_KEY, token],
     queryFn: fetchRewardStatus,
-    enabled: Boolean(Cookies.get('token')),
+    enabled: !!token,
     staleTime: 30_000,
   });
+};

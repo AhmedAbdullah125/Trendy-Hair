@@ -52,8 +52,10 @@ export type CartApiResponse = {
   };
 };
 
+const getAuthToken = () => Cookies.get("token") || localStorage.getItem("token") || "";
+
 const fetchCart = async (lang: string) => {
-  const token = Cookies.get("token");
+  const token = getAuthToken();
   const headers: Record<string, string> = { lang };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -62,11 +64,12 @@ const fetchCart = async (lang: string) => {
   return res.data;
 };
 
-export const useGetCart = (lang: string, options?: { enabled?: boolean }) =>
-  useQuery({
-    queryKey: ["cart", lang],
+export const useGetCart = (lang: string, options?: { enabled?: boolean }) => {
+  const token = getAuthToken();
+  return useQuery({
+    queryKey: ["cart", lang, token],
     queryFn: () => fetchCart(lang),
-    staleTime: 1000 * 5,
-    gcTime: 1000 * 60 * 30,
-    enabled: options?.enabled ?? true,
+    enabled: (options?.enabled ?? true) && !!token,
+    staleTime: 1000 * 30, // 30s
   });
+};

@@ -5,8 +5,10 @@ import { API_BASE_URL } from "../../lib/apiConfig";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { ApiEnvelope, ApiProfile } from "@/lib/apiTypes";
 
+const getAuthToken = () => Cookies.get("token") || localStorage.getItem("token") || "";
+
 const fetchProfile = async (lang: string): Promise<ApiProfile> => {
-  const token = Cookies.get("token");
+  const token = getAuthToken();
 
   const headers: Record<string, string> = { lang };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -16,10 +18,11 @@ const fetchProfile = async (lang: string): Promise<ApiProfile> => {
 };
 
 export const useGetProfile = (lang: string): UseQueryResult<ApiProfile> => {
+  const token = getAuthToken();
   return useQuery({
-    queryKey: ["profile", lang],
+    queryKey: ["profile", lang, token],
     queryFn: () => fetchProfile(lang),
-    enabled: !!Cookies.get("token"),
+    enabled: !!token,
     staleTime: 1000 * 60, // 1 minute
     gcTime: 1000 * 60,   // 1 minute
     retry: false,

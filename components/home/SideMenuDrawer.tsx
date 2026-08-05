@@ -27,7 +27,19 @@ const SideMenuDrawer: React.FC<Props> = ({
     onAccountClick,
     techBookingUrl,
 }) => {
-    if (!isOpen) return null;
+    const handleExternalLinkClick = (e: React.MouseEvent, url: string) => {
+        e.preventDefault();
+        onClose();
+        if (!url) return;
+        try {
+            const win = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!win || win.closed || typeof win.closed === 'undefined') {
+                window.location.href = url;
+            }
+        } catch {
+            window.location.href = url;
+        }
+    };
 
     return (
         <div className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
@@ -64,10 +76,11 @@ const SideMenuDrawer: React.FC<Props> = ({
                         </button>
 
                         <a
-                            href={techBookingUrl || "https://wa.me/96599007898"}
+                            href={techBookingUrl || "https://api.whatsapp.com/send?phone=96599007898"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-center w-full h-10 rounded-2xl bg-app-gold text-white text-center text-sm font-medium shadow-md shadow-app-gold/20 transition-all active:scale-[0.98] hover:bg-app-goldDark"
+                            onClick={(e) => handleExternalLinkClick(e, techBookingUrl || "https://api.whatsapp.com/send?phone=96599007898")}
+                            className="flex items-center justify-center w-full h-10 rounded-2xl bg-app-gold text-white text-center text-sm font-medium shadow-md shadow-app-gold/20 transition-all active:scale-[0.98] hover:bg-app-goldDark cursor-pointer"
                         >
                             حجز التكنك أونلاين ( المرة الأولى مجانا )
                         </a>
@@ -76,7 +89,8 @@ const SideMenuDrawer: React.FC<Props> = ({
                             href="https://onelink.to/maison.de.noor.salon"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-center w-full h-10 rounded-2xl bg-transparent text-app-gold border border-app-gold text-center text-sm font-medium transition-all active:scale-[0.98] hover:bg-app-gold/5"
+                            onClick={(e) => handleExternalLinkClick(e, "https://onelink.to/maison.de.noor.salon")}
+                            className="flex items-center justify-center w-full h-10 rounded-2xl bg-transparent text-app-gold border border-app-gold text-center text-sm font-medium transition-all active:scale-[0.98] hover:bg-app-gold/5 cursor-pointer"
                         >
                             حجز مواعيد التكنت بالصالون
                         </a>
@@ -84,16 +98,44 @@ const SideMenuDrawer: React.FC<Props> = ({
 
                     <div className="mt-8 px-12">
                         <div className="flex items-center justify-between gap-3">
-                            <a href="https://instagram.com/trandyhair" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card">
+                            <a
+                                href="https://www.instagram.com/trandyhair"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => handleExternalLinkClick(e, "https://www.instagram.com/trandyhair")}
+                                className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
+                                aria-label="Instagram"
+                            >
                                 <FontAwesomeIcon icon={faInstagram} />
                             </a>
-                            <a href="https://tiktok.com/@trandyhair" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card">
+                            <a
+                                href="https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => handleExternalLinkClick(e, "https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1")}
+                                className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
+                                aria-label="TikTok"
+                            >
                                 <FontAwesomeIcon icon={faTiktok} />
                             </a>
-                            <a href="https://snapchat.com/@trandyhairnoor" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card">
+                            <a
+                                href="https://www.snapchat.com/@trandyhairnoor?src=QR_CODE"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => handleExternalLinkClick(e, "https://www.snapchat.com/@trandyhairnoor?src=QR_CODE")}
+                                className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
+                                aria-label="Snapchat"
+                            >
                                 <FontAwesomeIcon icon={faSnapchat} />
                             </a>
-                            <a href="https://wa.me/96599007898" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card">
+                            <a
+                                href="https://api.whatsapp.com/send?phone=96599007898"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => handleExternalLinkClick(e, "https://api.whatsapp.com/send?phone=96599007898")}
+                                className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
+                                aria-label="WhatsApp"
+                            >
                                 <FontAwesomeIcon icon={faWhatsapp} />
                             </a>
                         </div>
@@ -101,7 +143,13 @@ const SideMenuDrawer: React.FC<Props> = ({
                 </div>
 
                 <div className="p-6 border-t border-app-card/30 bg-app-bg/30">
-                    <a href="https://raiyansoft.net" target="_blank" rel="noreferrer" className="text-[10px] text-app-textSec text-center font-alexandria block hover:text-app-gold">
+                    <a
+                        href="https://raiyansoft.net"
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => handleExternalLinkClick(e, "https://raiyansoft.net")}
+                        className="text-[10px] text-app-textSec text-center font-alexandria block hover:text-app-gold cursor-pointer"
+                    >
                         Powered by raiyansoft
                     </a>
                 </div>

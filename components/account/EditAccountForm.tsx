@@ -71,7 +71,14 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
         e.preventDefault();
         const newErrors: { [key: string]: string } = {};
 
-        if (!name.trim()) newErrors.name = 'يرجى إدخال الاسم';
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+            newErrors.name = 'يرجى إدخال الاسم';
+        } else if (trimmedName.length < 2) {
+            newErrors.name = 'الاسم يجب أن يكون حرفين على الأقل';
+        } else if (!/^[\p{L}\s'-]+$/u.test(trimmedName)) {
+            newErrors.name = 'الاسم يجب أن يحتوي على حروف فقط (بدون أرقام أو رموز)';
+        }
         if (!phone.trim()) newErrors.phone = 'يرجى إدخال رقم الهاتف';
 
         // Basic email validation if entered

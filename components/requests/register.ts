@@ -1,3 +1,4 @@
+import Cookies from 'js-cookie';
 import api from '@/lib/axiosInstance';
 import { API_BASE_URL } from '@/lib/apiConfig';
 import { toast } from 'sonner';
@@ -56,10 +57,11 @@ export async function registerRequest(
                 localStorage.setItem("token", tokenData?.access_token);
                 localStorage.setItem("refresh_token", tokenData?.refresh_token);
                 localStorage.setItem("userId", String(userData?.id));
+                localStorage.setItem("user", JSON.stringify(userData));
+                Cookies.set('token', tokenData.access_token, { expires: 7, path: '/' });
                 document.cookie = `token=${encodeURIComponent(tokenData.access_token)}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
 
                 router.push("/");
-                localStorage.setItem("user", JSON.stringify(userData));
             }
             else {
                 // Registration now creates the account unverified, so a

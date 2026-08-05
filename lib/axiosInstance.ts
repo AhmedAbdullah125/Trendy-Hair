@@ -13,11 +13,16 @@ export function handleUnauthorized(): void {
   isRedirecting = true;
 
   // Clear every place tokens are stored
+  Cookies.remove('token', { path: '/' });
   Cookies.remove('token');
+  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
   localStorage.removeItem('token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('userId');
   localStorage.removeItem('user');
+  localStorage.removeItem('game_state');
+  localStorage.removeItem('orders');
+  localStorage.removeItem('favourites');
 
   window.location.href = '/login';
 }

@@ -158,6 +158,9 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
     if (competitionData.blockedUntil && competitionData.blockedUntil > Date.now()) {
       setWaitUntil(competitionData.blockedUntil);
       setGameState((s) => (s === GameState.PLAYING ? s : GameState.LOST_COOLDOWN));
+    } else {
+      setWaitUntil(null);
+      setGameState((s) => (s === GameState.LOST_COOLDOWN ? GameState.IDLE : s));
     }
   }, [competitionData]);
 

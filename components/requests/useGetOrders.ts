@@ -19,11 +19,13 @@ interface OrdersPage {
 /**
  * Fetches orders from the API
  */
+const getAuthToken = () => Cookies.get("token") || localStorage.getItem("token") || "";
+
 const fetchOrders = async (
     params: OrdersQueryParams,
     lang: string
 ): Promise<OrdersPage> => {
-    const token = Cookies.get("token");
+    const token = getAuthToken();
 
     const headers: Record<string, string> = {
         lang,
@@ -60,6 +62,7 @@ export const useGetOrders = (
     params: OrdersQueryParams = {},
     lang: string = 'ar'
 ): UseQueryResult<OrdersPage> => {
+    const token = getAuthToken();
     const defaultParams: OrdersQueryParams = {
         page_number: 1,
         page_size: 10,
@@ -67,16 +70,11 @@ export const useGetOrders = (
     };
 
     return useQuery({
-        queryKey: ["orders", defaultParams, lang],
+        queryKey: ["orders", defaultParams, lang, token],
         queryFn: () => fetchOrders(defaultParams, lang),
-        enabled: !!Cookies.get("token"),
+        enabled: !!token,
         staleTime: 1000 * 10, // 10 seconds
         gcTime: 1000 * 60, // 1 minute
-        // The list is opened straight after placing an order, and an order the
-        // customer just created must never be missing from it. Checkout does
-        // invalidate `["orders"]`, but this is the cheap belt-and-braces for
-        // any path that does not — a payment-gateway return, for instance,
-        // reloads the app, so the invalidation never ran in this tab.
         refetchOnMount: 'always',
     });
 };

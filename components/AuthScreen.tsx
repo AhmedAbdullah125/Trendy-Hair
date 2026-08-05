@@ -17,6 +17,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const [view, setView] = useState<AuthView>('login');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -59,8 +60,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       setError('الاسم يجب أن يكون حرفين على الأقل');
       return;
     }
-    if (!/\p{L}/u.test(trimmedName)) {
-      setError('الاسم يجب أن يحتوي على حروف، وليس أرقاماً أو رموزاً فقط');
+    if (!/^[\p{L}\s'-]+$/u.test(trimmedName)) {
+      setError('الاسم يجب أن يحتوي على حروف فقط (بدون أرقام أو رموز)');
       return;
     }
 
@@ -188,7 +189,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
             {view === 'register' && (
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="تأكيد كلمة المرور"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -197,6 +198,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                   disabled={isLoading}
                 />
                 <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-app-textSec" size={20} />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-app-textSec hover:text-app-gold transition-colors"
+                  disabled={isLoading}
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             )}
 

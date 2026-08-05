@@ -173,10 +173,10 @@ const ReviewsTab: React.FC = () => {
             <video
               ref={videoRef}
               src={activeReview.videoUrl}
-              className="w-full h-auto max-h-[80vh] object-contain bg-black no-controls"
+              className="w-full h-auto max-h-[80vh] object-contain bg-black"
+              controls
               autoPlay
               playsInline
-              muted
               loop
             />
           </div>

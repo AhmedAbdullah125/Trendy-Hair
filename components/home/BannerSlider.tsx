@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
@@ -14,11 +15,25 @@ interface Props {
 }
 
 const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 }) => {
+    const navigate = useNavigate();
     const [current, setCurrent] = useState(0);
 
     const hasBanners = banners && banners.length > 0;
 
     if (!hasBanners) return null;
+
+    const handleBannerClick = (b: Banner) => {
+        if (!b.url || !b.url.trim()) return;
+        const target = b.url.trim();
+
+        if (/^https?:\/\//i.test(target)) {
+            window.open(target, '_blank', 'noopener,noreferrer');
+        } else if (target.startsWith('/')) {
+            navigate(target);
+        } else {
+            navigate(`/${target}`);
+        }
+    };
 
     return (
         <div className="px-6">
@@ -30,17 +45,27 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
                     onSlideChange={(swiper: SwiperType) => setCurrent(swiper.realIndex)}
                     className="w-full h-full"
                 >
-                    {banners.map((b) => (
-                        <SwiperSlide key={b.id} className="w-full h-full">
-                            <img
-                                src={resolveImageUrl(b.image)}
-                                onError={onImageError}
-                                alt={b.title || ""}
-                                className="w-full h-full object-cover object-center block"
-                                draggable={false}
-                            />
-                        </SwiperSlide>
-                    ))}
+                    {banners.map((b) => {
+                        const hasLink = Boolean(b.url && b.url.trim());
+                        return (
+                            <SwiperSlide key={b.id} className="w-full h-full">
+                                <div
+                                    onClick={() => handleBannerClick(b)}
+                                    className={`w-full h-full ${hasLink ? "cursor-pointer active:opacity-90 transition-opacity" : ""}`}
+                                    role={hasLink ? "button" : undefined}
+                                    tabIndex={hasLink ? 0 : undefined}
+                                >
+                                    <img
+                                        src={resolveImageUrl(b.image)}
+                                        onError={onImageError}
+                                        alt={b.title || ""}
+                                        className="w-full h-full object-cover object-center block"
+                                        draggable={false}
+                                    />
+                                </div>
+                            </SwiperSlide>
+                        );
+                    })}
                 </Swiper>
 
                 {/* Dots */}
