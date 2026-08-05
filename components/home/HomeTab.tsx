@@ -155,6 +155,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     }, [categoryId]);
 
     // Handlers
+    const closeMenu = useCallback(() => setIsMenuOpen(false), []);
     const toggleMenu = useCallback(() => setIsMenuOpen((p) => !p), []);
 
     const handleCategoryClick = useCallback((name: string, id: string) => {
@@ -191,8 +192,8 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
 
     const handleAccountClick = useCallback(() => {
         navigate("/account");
-        toggleMenu();
-    }, [navigate, toggleMenu]);
+        closeMenu();
+    }, [navigate, closeMenu]);
 
     const handleTitleClick = useCallback(() => navigate("/"), [navigate]);
     const handleClickBrand = useCallback((id: number) => navigate(`/brand/${id}`), [navigate]);
@@ -208,7 +209,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         <div className="flex pt-20 flex-col h-[100vh] bg-app-bg relative font-alexandria overflow-hidden">
             <SideMenuDrawer
                 isOpen={isMenuOpen}
-                onClose={toggleMenu}
+                onClose={closeMenu}
                 categories={activeCategories}
                 onCategoryClick={handleCategoryClick}
                 onAccountClick={handleAccountClick}

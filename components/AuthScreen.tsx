@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { loginRequest } from './requests/loginRequest';
 import { registerRequest } from './requests/register';
+import VerifyPhoneStep from './auth/VerifyPhoneStep';
 import PhoneField from './PhoneField';
-import { hasEnoughDigits, MIN_NATIONAL_DIGITS } from '../lib/phone';
+import { hasEnoughDigits, MIN_NATIONAL_DIGITS, toE164 } from '../lib/phone';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
 }
 
-type AuthView = 'register' | 'login';
+type AuthView = 'register' | 'login' | 'verify';
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -82,7 +83,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         { name, phone, password, dialCode },
         setIsLoading,
         'ar',
-        routerAdapter
+        routerAdapter,
+        () => setView('verify')
       );
     } catch (err) {
       console.error('Registration error:', err);
@@ -116,11 +118,33 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         { phone, password, dialCode },
         setIsLoading,
         'ar',
-        routerAdapter
+        routerAdapter,
+        () => setView('verify')
       );
     } catch (err) {
       console.error('Login error:', err);
       setError('حدث خطأ أثناء تسجيل الدخول');
+    }
+  };
+
+  const handleVerified = async () => {
+    try {
+      const routerAdapter = {
+        push: (path: string) => {
+          onLoginSuccess();
+          navigate(path);
+        }
+      };
+
+      await loginRequest(
+        { phone, password, dialCode },
+        setIsLoading,
+        'ar',
+        routerAdapter
+      );
+    } catch (err) {
+      console.error('Post-verification login error:', err);
+      setError('حدث خطأ أثناء تسجيل الدخول بعد التفعيل');
     }
   };
 
@@ -134,12 +158,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           <p className="text-app-textSec text-sm">بوابتك لعالم الجمال والعناية</p>
         </div>
 
-        <div className="w-full bg-white  max-w-[430px] rounded-[2rem] shadow-sm border border-app-card/30 p-8">
-          <h2 className="text-xl font-bold text-app-text mb-6 text-center">
-            {view === 'register' ? 'تسجيل حساب جديد' : 'تسجيل الدخول'}
-          </h2>
+        <div className="w-full bg-white max-w-[430px] rounded-[2rem] shadow-sm border border-app-card/30 p-8">
+          {view === 'verify' ? (
+            <VerifyPhoneStep
+              phone={toE164(phone, dialCode)}
+              lang="ar"
+              onVerified={handleVerified}
+              onBack={() => setView('login')}
+            />
+          ) : (
+            <>
+              <h2 className="text-xl font-bold text-app-text mb-6 text-center">
+                {view === 'register' ? 'تسجيل حساب جديد' : 'تسجيل الدخول'}
+              </h2>
 
-          <form onSubmit={view === 'register' ? handleRegister : handleLogin} className="space-y-4">
+              <form onSubmit={view === 'register' ? handleRegister : handleLogin} className="space-y-4">
 
             {/* Registration Only: Name */}
             {view === 'register' && (
@@ -268,8 +301,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               </button>
             )}
           </div>
+        </>
+      )}
 
-        </div>
+    </div>
 
         <div className="mt-8">
           <span className="text-[10px] text-app-textSec opacity-50">Powered by raiyansoft</span>

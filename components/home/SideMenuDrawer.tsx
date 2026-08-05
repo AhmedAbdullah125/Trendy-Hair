@@ -27,6 +27,8 @@ const SideMenuDrawer: React.FC<Props> = ({
     onAccountClick,
     techBookingUrl,
 }) => {
+    if (!isOpen) return null;
+
     const handleExternalLinkClick = (e: React.MouseEvent, url: string) => {
         e.preventDefault();
         onClose();
@@ -41,15 +43,28 @@ const SideMenuDrawer: React.FC<Props> = ({
         }
     };
 
+    const handleClose = (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        onClose();
+    };
+
     return (
-        <div className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={handleClose}>
             <div
-                className="absolute right-0 top-0 bottom-0 w-3/4 max-w-[320px] bg-white shadow-2xl animate-slideLeftRtl flex flex-col fixed h-full"
+                className="absolute right-0 top-0 bottom-0 w-3/4 max-w-[320px] bg-white shadow-2xl animate-slideLeftRtl flex flex-col h-full"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="p-6 flex items-center justify-between border-b border-app-card/30">
                     <span className="text-lg font-bold text-app-text font-alexandria">الأقسام</span>
-                    <button onClick={onClose} className="p-2 hover:bg-app-bg rounded-full transition-colors text-app-text">
+                    <button
+                        type="button"
+                        onClick={handleClose}
+                        className="p-2 hover:bg-app-bg rounded-full transition-colors text-app-text cursor-pointer active:scale-95 z-50"
+                        aria-label="إغلاق"
+                    >
                         <X size={24} />
                     </button>
                 </div>
