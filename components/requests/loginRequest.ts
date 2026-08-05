@@ -43,7 +43,9 @@ export async function loginRequest(
     data: LoginCredentials,
     setLoading: SetLoading,
     lang: string,
-    router: RouterLike
+    router: RouterLike,
+    /** Called when the account exists but has not confirmed its code yet. */
+    onVerificationRequired?: () => void
 ): Promise<void> {
     setLoading(true)
     // clear token from cookies
@@ -115,14 +117,13 @@ export async function loginRequest(
                 localStorage.setItem("user", JSON.stringify(userData));
             }
             else {
-                toast(message, {
-                    style: {
-                        background: "#dc3545",
-                        color: "#fff",
-                        borderRadius: "10px",
-                        boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
-                    },
-                });
+                // Unverified account: the API answers 200 with
+                // `items.token === null` and the `account_unverified` message,
+                // and carries no `code` field — so the null token is the only
+                // reliable signal. Hand it to the caller as a state to act on
+                // rather than showing a red toast the user cannot resolve.
+                onVerificationRequired?.();
+                return;
             }
 
 

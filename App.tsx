@@ -390,7 +390,25 @@ const App: React.FC = () => {
     setIsInitializing(false);
   }, []);
 
+  /**
+   * Wipes everything scoped to whoever was signed in.
+   *
+   * Run on **both** sign-in and sign-out. Clearing only on sign-out is not
+   * enough — that path only runs when the user presses the button, so a
+   * session ended any other way (expired token, 401 redirect, cleared cookie,
+   * closed tab) left the previous account's data behind. The next person to
+   * sign in then saw it: cached `profile`, `cart`, `orders`, `favourites` and
+   * competition state, plus the localStorage copies AppContent reads on mount.
+   */
+  const clearAccountScopedState = () => {
+    queryClient.clear();
+    localStorage.removeItem(STORAGE_KEYS.ORDERS);
+    localStorage.removeItem(STORAGE_KEYS.FAVOURITES);
+    localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
+  };
+
   const handleLoginSuccess = () => {
+    clearAccountScopedState();
     setIsAuthenticated(true);
   };
 
@@ -402,15 +420,9 @@ const App: React.FC = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('user');
 
-    // Per-account data used to survive sign-out, so on a shared device the
-    // next person inherited the previous user's order history, favourites and
-    // competition run position.
-    localStorage.removeItem(STORAGE_KEYS.ORDERS);
-    localStorage.removeItem(STORAGE_KEYS.FAVOURITES);
-    localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
-
-    // Cached responses belong to the account that just signed out.
-    queryClient.clear();
+    // Same wipe as on sign-in: order history, favourites, competition
+    // position and every cached response belong to the account leaving.
+    clearAccountScopedState();
   };
 
   if (isInitializing) {

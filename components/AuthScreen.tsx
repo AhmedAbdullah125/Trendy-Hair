@@ -50,6 +50,20 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       return;
     }
 
+    // The name field accepted anything — "123" registered fine, and the
+    // customers table is full of digit-only and keyboard-mash names as a
+    // result. The API only checks `required|string|max:255`, so this is the
+    // only gate. `\p{L}` accepts Arabic and Latin alike.
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2) {
+      setError('الاسم يجب أن يكون حرفين على الأقل');
+      return;
+    }
+    if (!/\p{L}/u.test(trimmedName)) {
+      setError('الاسم يجب أن يحتوي على حروف، وليس أرقاماً أو رموزاً فقط');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('كلمة المرور غير متطابقة');
       return;

@@ -19,7 +19,9 @@ export async function registerRequest(
     data: RegisterCredentials,
     setLoading: SetLoading,
     lang: string,
-    router: RouterLike
+    router: RouterLike,
+    /** Called when the account was created but still needs its code confirmed. */
+    onVerificationRequired?: () => void
 ): Promise<void> {
     setLoading(true)
     const url = `${API_BASE_URL}/v1/register`;
@@ -60,14 +62,20 @@ export async function registerRequest(
                 localStorage.setItem("user", JSON.stringify(userData));
             }
             else {
+                // Registration now creates the account unverified, so a
+                // successful signup comes back with `code:
+                // "verification_required"` and no token. That is the normal
+                // path, not a failure — send the user to the code screen.
                 toast(message, {
                     style: {
-                        background: "#dc3545",
+                        background: "#1B8354",
                         color: "#fff",
                         borderRadius: "10px",
                         boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
                     },
                 });
+                onVerificationRequired?.();
+                return;
             }
 
 

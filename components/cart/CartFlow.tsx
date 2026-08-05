@@ -182,6 +182,17 @@ const CartFlow: React.FC<CartFlowProps> = ({
             return;
         }
 
+        // The server rejects an address made only of digits, spaces or
+        // punctuation ("العنوان التفصيلي يجب أن يحتوي على عنوان مكتوب، وليس
+        // أرقاماً أو مسافات فقط"). Checking here turns a 422 after the whole
+        // checkout round trip into immediate feedback on the field the
+        // customer is still looking at. `\p{L}` covers Arabic and Latin alike.
+        const addressText = addressForm.details.trim();
+        if (!/\p{L}/u.test(addressText)) {
+            toast.error("العنوان التفصيلي يجب أن يحتوي على عنوان مكتوب، وليس أرقاماً أو مسافات فقط.");
+            return;
+        }
+
         const formData = new FormData();
         formData.append("use_wallet", useGameBalance ? "1" : "0");
         formData.append("wallet_amount", useGameBalance ? finalGameDeduction.toFixed(3) : "0");

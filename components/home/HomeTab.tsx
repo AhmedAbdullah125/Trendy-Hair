@@ -231,6 +231,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
                         onDec={handleDec}
                         onAdd={handleAddAction}
                         onBuyNow={handleBuyNow}
+                        onOpenCart={onOpenCart}
                     />
                 ) : !activeCategory ? (
                     <HomeContent

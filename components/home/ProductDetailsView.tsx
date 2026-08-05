@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useRef, useCallback } from "react";
-import { ArrowRight, Minus, Plus, ShoppingBag, ZoomIn, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Heart, Loader2, Minus, Plus, ShoppingBag, ZoomIn, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "../../types";
 import { useAddToCart } from "../requests/useAddToCart";
+import { toggleFavourite } from "../requests/toggleFavourites";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface Props {
@@ -163,9 +165,24 @@ const ProductDetailsView: React.FC<Props> = ({
         onAdd?.();
     };
 
+    /**
+     * Buy now: add once, then open the cart.
+     *
+     * This used to call `onBuyNow?.()` — which itself added the product and
+     * opened the cart — *and then* fire `addMut.mutate` as well. Two adds went
+     * out for one tap. Because they raced, the server's
+     * "update existing row, else insert" check ran twice before either
+     * committed, so both inserted and the cart ended up with two separate
+     * lines for the same product.
+     *
+     * The double dispatch also caused the missing loading state: the parent
+     * opened the cart synchronously, before the add had been sent, so the
+     * cart rendered from the pre-add cache and showed "السلة فارغة حالياً"
+     * until the refetch landed. Opening only after the mutation resolves —
+     * `useAddToCart` awaits its own cart invalidation — means the cart is
+     * already correct when it appears.
+     */
     const handleBuyNow = () => {
-        onBuyNow?.();
-
         if (!inStock) return notifyOutOfStock();
         if (stockQty > 0 && quantity > stockQty) return notifyMax();
         if (addMut.isPending) return;
@@ -174,6 +191,12 @@ const ProductDetailsView: React.FC<Props> = ({
             { product_id: product.id, quantity, lang },
             {
                 onSuccess: () => {
+                    // Only opens the cart. Deliberately does *not* fall back to
+                    // `onBuyNow`, which adds to the cart as well as opening it —
+                    // calling it here would re-introduce the double add this
+                    // whole change exists to remove. A caller that passes no
+                    // opener just doesn't get the cart opened, which is a far
+                    // better failure than ordering the product twice.
                     onOpenCart?.();
                 },
             }
@@ -184,15 +207,56 @@ const ProductDetailsView: React.FC<Props> = ({
         return formatDescription((product as any).description);
     }, [(product as any).description]);
 
+    const qc = useQueryClient();
+    const [favLoading, setFavLoading] = useState(false);
+    const [localFavOverride, setLocalFavOverride] = useState<boolean | null>(null);
+
+    // Server flag first; the override only covers the in-flight tap.
+    const serverFav = (product as any)?.isFavorite ?? (product as any)?.is_favorite;
+    const isFav = localFavOverride === null ? Boolean(serverFav) : localFavOverride;
+
+    const handleToggleFavourite = async () => {
+        if (favLoading) return;
+        const next = !isFav;
+        setLocalFavOverride(next);
+
+        const ok = await toggleFavourite(product.id, setFavLoading, lang ?? "ar");
+        if (!ok) {
+            setLocalFavOverride(null);
+            return;
+        }
+        // The favourites tab and any listing carrying `is_favorite` are stale now.
+        qc.invalidateQueries({ queryKey: ["favourites"] });
+        qc.invalidateQueries({ queryKey: ["product"] });
+    };
+
     return (
         <div className="animate-fadeIn pt-4">
-            <div className="px-6 mb-4">
+            <div className="px-6 mb-4 flex items-center justify-between gap-3">
                 <button
                     onClick={onBack}
                     className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors flex items-center gap-2"
                 >
                     <ArrowRight size={20} />
                     <span className="text-sm font-medium">{lang === "ar" ? "العودة" : "Back"}</span>
+                </button>
+
+                {/*
+                    Favouriting was only possible from a listing card, so a
+                    customer who opened a product had to go back out to save it.
+                    Same behaviour as ProductCard: server `is_favorite` drives
+                    the state, the tap is optimistic, and a failed call rolls
+                    the heart back rather than leaving it lying.
+                */}
+                <button
+                    onClick={handleToggleFavourite}
+                    disabled={favLoading}
+                    aria-label={isFav ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
+                    aria-pressed={isFav}
+                    className={`p-2.5 rounded-full shadow-sm transition-colors ${isFav ? "bg-white text-red-500" : "bg-white text-app-gold hover:bg-app-card"
+                        } ${favLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                    <Heart size={20} fill={isFav ? "currentColor" : "none"} />
                 </button>
             </div>
 
@@ -436,9 +500,16 @@ const ProductDetailsView: React.FC<Props> = ({
                 <button
                     onClick={handleBuyNow}
                     disabled={!canAddToCart}
-                    className="w-full bg-white text-app-gold border border-app-gold font-bold py-4 rounded-2xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full bg-white text-app-gold border border-app-gold font-bold py-4 rounded-2xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                    <span>{lang === "ar" ? "اشتري الآن" : "Buy Now"}</span>
+                    {/* The cart only opens once the add resolves, so without
+                        this the button looked inert for the whole round trip. */}
+                    {addMut.isPending && <Loader2 size={18} className="animate-spin" />}
+                    <span>
+                        {addMut.isPending
+                            ? (lang === "ar" ? "جاري الإضافة..." : "Adding...")
+                            : (lang === "ar" ? "اشتري الآن" : "Buy Now")}
+                    </span>
                 </button>
             </div>
         </div>
