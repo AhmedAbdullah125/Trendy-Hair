@@ -1,4 +1,5 @@
 import React from "react";
+import { onImageError, resolveImageUrl } from "../../lib/imageUrl";
 
 type Brand = { id: number; name: string; image: string };
 
@@ -9,11 +10,6 @@ interface Props {
 
 const BrandsRow: React.FC<Props> = ({ brands, onClickBrand }) => {
     if (!brands.length) return null;
-
-    // Helper function to clean escaped slashes from image URLs
-    const cleanImageUrl = (url: string) => {
-        return url?.replace(/\\\//g, '/') || '';
-    };
 
     return (
         <div className="px-6 mt-10">
@@ -26,7 +22,7 @@ const BrandsRow: React.FC<Props> = ({ brands, onClickBrand }) => {
                         onClick={() => onClickBrand(brand.id)}
                         className="relative shrink-0 w-32 h-32 rounded-2xl overflow-hidden bg-white shadow-sm border border-app-card/30 group cursor-pointer"
                     >
-                        <img src={cleanImageUrl(brand.image).split("https://trandyhairapp.com/api/v1/")[1]} alt={brand.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <img src={resolveImageUrl(brand.image)} onError={onImageError} alt={brand.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-end p-3">
                             <span className="text-white text-[10px] font-bold font-alexandria uppercase tracking-wider text-right">
                                 {brand.name}

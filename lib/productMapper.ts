@@ -1,5 +1,6 @@
 import { Product } from '../types';
 import type { ApiProductListItem } from './apiTypes';
+import { resolveImageUrl } from './imageUrl';
 
 /**
  * Accepts either the lightweight listing row (`ProductListResource`) or the full
@@ -20,7 +21,7 @@ export const mapApiProductToComponent = (apiProduct: MappableApiProduct): Produc
         oldPrice: apiProduct.has_discount && apiProduct.price
             ? `${apiProduct.price.toFixed(3)} د.ك`
             : undefined,
-        image: apiProduct.main_image,
+        image: resolveImageUrl(apiProduct.main_image),
         categoryId: apiProduct.category?.id?.toString(),
         categoryName: apiProduct.category?.name,
         brandId: apiProduct.brand?.id?.toString(),

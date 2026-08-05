@@ -10,7 +10,7 @@ export async function toggleFavourite(
     id: number,
     setLoading: SetLoading,
     lang: string
-): Promise<void> {
+): Promise<boolean> {
     setLoading(true)
     const url = `${API_BASE_URL}/v1/products/toggle-favorite/${id}`;
     const headers: Record<string, string> = { 'lang': lang }
@@ -30,6 +30,7 @@ export async function toggleFavourite(
                     boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
                 },
             });
+            return true;
         }
         else {
             toast(message, {
@@ -40,6 +41,7 @@ export async function toggleFavourite(
                     boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
                 },
             });
+            return false;
         }
     } catch (error) {
         setLoading(false);
@@ -52,5 +54,6 @@ export async function toggleFavourite(
                 boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
             },
         });
+        return false;
     }
 }

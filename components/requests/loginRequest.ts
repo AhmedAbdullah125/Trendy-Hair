@@ -5,6 +5,7 @@ import type { ApiAuthPayload, ApiEnvelope } from '@/lib/apiTypes';
 import { getApiErrorMessage } from '@/lib/apiTypes';
 import { getApiStatusCode } from '@/lib/apiResult';
 import { phoneLookupCandidates } from '@/lib/phone';
+import { appendOAuthClient } from '@/lib/authConfig';
 
 export interface LoginCredentials {
     phone: string;
@@ -28,8 +29,7 @@ async function attemptLogin(phone: string, data: LoginCredentials, lang: string)
     const formData = new FormData();
     formData.append('phone', phone);
     formData.append('password', data.password);
-    formData.append('client_id', "a0e57322-f1ef-4a3c-84ff-b9a3d852a559");
-    formData.append('client_secret', "OF3II6JtC3DIrSk5mNVl0ZaPlkP1P8nI5wrf1tYX");
+    appendOAuthClient(formData);
     formData.append('grant_type', "password");
 
     return api.post<ApiEnvelope<ApiAuthPayload>>(

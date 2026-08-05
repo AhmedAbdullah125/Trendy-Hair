@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Product } from "../../types";
 import { useData } from "../../context/DataContext";
-import { API_BASE_URL } from "../../lib/apiConfig";
+import { resolveImageUrl } from "../../lib/imageUrl";
 import { mapApiProductsToComponent } from "../../lib/productMapper";
 import { useGetCategories } from "../requests/useGetCategories";
 import { useGetHomeData } from "../requests/useGetHomeData";
@@ -57,7 +57,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         return apiCategories.map((cat: any) => ({
             id: String(cat.id),
             name: cat.name,
-            image: `${API_BASE_URL}/v1/${cat.image}`,
+            image: resolveImageUrl(cat.image),
             isActive: cat.is_active === 1,
             sortOrder: cat.position,
         }));
@@ -70,7 +70,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         return homeData.banners
             .filter((b: any) => b.is_active === 1)
             .sort((a: any, b: any) => a.position - b.position)
-            .map((b: any) => ({ id: b.id, image: `${API_BASE_URL}/v1/${b.image}`, title: b.title, url: b.url }));
+            .map((b: any) => ({ id: b.id, image: resolveImageUrl(b.image), title: b.title, url: b.url }));
     }, [homeData]);
 
     const brands = useMemo(() => {
@@ -78,7 +78,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
         return homeData.brands
             .filter((b: any) => b.is_active === 1)
             .sort((a: any, b: any) => a.position - b.position)
-            .map((b: any) => ({ id: b.id, name: b.name, image: `${API_BASE_URL}/v1/${b.image}` }));
+            .map((b: any) => ({ id: b.id, name: b.name, image: resolveImageUrl(b.image) }));
     }, [homeData]);
 
     const recentProducts = useMemo(() => (homeData?.products_recently ? mapApiProductsToComponent(homeData.products_recently) : []), [homeData]);
@@ -147,6 +147,12 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
             }
         }
     }, [selectedProduct, cartData]);
+
+    // Pagination is per-category: without this, moving from category A page 3
+    // to category B requested page 3 of B and often rendered an empty grid.
+    useEffect(() => {
+        setCategoryPage(1);
+    }, [categoryId]);
 
     // Handlers
     const toggleMenu = useCallback(() => setIsMenuOpen((p) => !p), []);

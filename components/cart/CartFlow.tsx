@@ -54,7 +54,9 @@ const CartFlow: React.FC<CartFlowProps> = ({
     const [gameAmountToUse, setGameAmountToUse] = useState<number>(0);
 
     const [addressForm, setAddressForm] = useState<AddressForm>({
-        name: "nader",
+        // Was hardcoded to a developer's name, which also blocked the
+        // profile-name prefill in DetailsStep (`!addressForm.name` was never true).
+        name: "",
         governorate: "",
         area: "",
         details: "",
@@ -185,10 +187,21 @@ const CartFlow: React.FC<CartFlowProps> = ({
         formData.append("wallet_amount", useGameBalance ? finalGameDeduction.toFixed(3) : "0");
         formData.append("governorate_id", addressForm.governorate);
         formData.append("city_id", addressForm.area);
-        formData.append("address", addressForm.details);
-        formData.append("phone", addressForm.phone);
         formData.append("payment_type", paymentMethod);
-        formData.append("notes", "");
+
+        // The `address` field was being dropped on the floor: `orders` has no
+        // address column, `StoreOrderRequest` does not validate one, and
+        // `OrderEloquent::store()` never reads it — so the street details the
+        // customer is *required* to enter never reached anyone who could
+        // deliver the order. `notes` is the only free-text field that is
+        // actually persisted, so the address rides there until the backend
+        // grows a structured address (see BACKEND_INTEGRATION_REQUESTS.md).
+        //
+        // Deliberately a stop-gap, not the destination: `notes` is capped at
+        // 500 chars and is not queryable or exportable as an address.
+        const addressLine = addressForm.details?.trim();
+        const notes = addressLine ? `العنوان: ${addressLine}` : "";
+        formData.append("notes", notes.slice(0, 500));
 
         try {
             const result = await createOrder(formData, lang, setStep, setIsProcessing, qc, paymentMethod);

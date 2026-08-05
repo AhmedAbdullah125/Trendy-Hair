@@ -30,8 +30,14 @@ export type StartStageFailure =
    * banking a run — not an error state.
    */
   | { kind: 'restart'; message: string }
-  /** An attempt is already open on another stage. */
-  | { kind: 'attemptActive'; message: string; attemptId: number | null }
+  /**
+   * An attempt is already open on another stage.
+   *
+   * Both identifiers are carried so the UI can recover rather than dead-end:
+   * `attemptId` reloads it via `attempts/{id}/questions`, and
+   * `stageId` names the stage it belongs to.
+   */
+  | { kind: 'attemptActive'; message: string; attemptId: number | null; stageId: number | null }
   /** The stage is misconfigured — no questions, or fewer than it needs. */
   | { kind: 'empty'; message: string }
   | { kind: 'unknown'; message: string };
@@ -42,6 +48,8 @@ interface TimedItems {
   blocked_until?: string;
   remaining_minutes?: number;
   attempt_id?: number;
+  /** Sent alongside `attempt_id` on `attempt_active` (CompetitionEloquent::start). */
+  competition_stage_id?: number;
 }
 
 const toMs = (iso?: string): number | null => {
@@ -71,7 +79,12 @@ export const classifyStartFailure = (error: unknown): StartStageFailure => {
     case 'stage_locked':
       return { kind: 'restart', message };
     case 'attempt_active':
-      return { kind: 'attemptActive', message, attemptId: items.attempt_id ?? null };
+      return {
+        kind: 'attemptActive',
+        message,
+        attemptId: items.attempt_id ?? null,
+        stageId: items.competition_stage_id ?? null,
+      };
     case 'stage_empty':
     case 'stage_insufficient_questions':
     case 'stage_not_found':

@@ -1,4 +1,5 @@
 import React from "react";
+import { onImageError, resolveImageUrl } from "../../lib/imageUrl";
 
 type Category = {
     id: number;
@@ -10,9 +11,6 @@ interface Props {
     categories: Category[];
     onClickCategory: (id: number, name: string) => void;
 }
-
-const API_PREFIX_RE = /^https?:\/\/[^/]+\/api\/v1\/(https?:\/\/)/;
-const cleanImageUrl = (url: string): string => url.replace(API_PREFIX_RE, '$1');
 
 const CategoriesRow: React.FC<Props> = ({ categories, onClickCategory }) => {
     if (!categories.length) return null;
@@ -30,7 +28,8 @@ const CategoriesRow: React.FC<Props> = ({ categories, onClickCategory }) => {
                     >
                         {cat.image ? (
                             <img
-                                src={cleanImageUrl(cat.image)}
+                                src={resolveImageUrl(cat.image)}
+                                onError={onImageError}
                                 alt={cat.name}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                             />

@@ -24,11 +24,18 @@ async function updateProfileRequest(
     if (data.email) formData.append('email', data.email);
     if (data.photo) formData.append('photo', data.photo);
 
+    // PHP only populates $_POST/$_FILES for POST requests. Sent as a real PUT
+    // the multipart body is never parsed, so every field — including `photo` —
+    // arrives empty; because the rules are all `nullable` that passes
+    // validation and saves nothing, so the screen reports success having
+    // changed no data. POST + `_method` is what Laravel expects here.
+    formData.append('_method', 'PUT');
+
     const headers: Record<string, string> = { lang };
     const token = Cookies.get('token');
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const response = await api.put<UpdateProfileResponse>(url, formData, { headers });
+    const response = await api.post<UpdateProfileResponse>(url, formData, { headers });
     return response.data;
 }
 

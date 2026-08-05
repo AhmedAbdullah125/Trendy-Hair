@@ -7,6 +7,7 @@ import { useDeleteCartItem } from "./requests/useDeleteCartItem";
 import { useGetCart } from "./requests/useGetCart";
 import { addToCart } from "./requests/addToCart";
 import { useQueryClient } from "@tanstack/react-query";
+import { onImageError, resolveImageUrl } from "../lib/imageUrl";
 
 interface ProductCardProps {
   product: Product;
@@ -55,14 +56,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // True when local qty differs from confirmed server qty
   const isDirty = cartItem && localQty !== cartItem.quantity;
 
+  /**
+   * Server state first.
+   *
+   * `is_favorite` is on every product row (`ProductListResource`) and already
+   * mapped through `productMapper`, but the heart used to be driven by the
+   * `isFavourite` prop — a localStorage array in `App`. That meant favourites
+   * looked empty on a second device or after clearing storage, and a failed
+   * toggle still flipped the local copy, so the two drifted apart permanently.
+   *
+   * `localFavOverride` remains for optimistic feedback only, and is dropped as
+   * soon as fresh server data arrives.
+   */
+  const serverFav = (product as any).isFavorite;
   const isFav = useMemo(() => {
-    const base = isFavourite;
+    const base = typeof serverFav === 'boolean' ? serverFav : isFavourite;
     return localFavOverride === null ? base : localFavOverride;
-  }, [isFavourite, localFavOverride, (product as any).isFavorite]);
+  }, [isFavourite, localFavOverride, serverFav]);
 
   useEffect(() => {
     setLocalFavOverride(null);
-  }, [(product as any).isFavorite, isFavourite]);
+  }, [serverFav, isFavourite]);
 
   const handleToggleFavourite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,7 +84,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const next = !isFav;
     setLocalFavOverride(next);
     onToggleFavourite(product.id);
-    await toggleFavourite(product.id, setFavLoading, lang);
+
+    const ok = await toggleFavourite(product.id, setFavLoading, lang);
+    if (!ok) {
+      // Roll the optimistic flip back rather than leaving the heart showing a
+      // state the server never accepted.
+      setLocalFavOverride(null);
+      return;
+    }
+    // The favourites list and any product listing carrying `is_favorite` are
+    // now stale; this was never invalidated, so the Favourites tab kept
+    // showing removed items until its staleTime lapsed.
+    qc.invalidateQueries({ queryKey: ["favourites"] });
   };
 
   // ── Add to cart (first time) ──────────────────────────────────────────────
@@ -119,7 +144,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
     >
       <div className="relative w-full aspect-square bg-app-bg/50 overflow-hidden">
         <img
-          src={(product as any).image}
+          src={resolveImageUrl((product as any).image)}
+          onError={onImageError}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -134,6 +160,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         <button
           onClick={handleToggleFavourite}
+          aria-label={isFav ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
+          aria-pressed={isFav}
           disabled={favLoading}
           className={`absolute top-2 right-2 p-1.5 backdrop-blur-md rounded-full shadow-sm transition-all z-30
             ${isFav ? "bg-white text-red-500" : "bg-white/60 text-app-gold hover:bg-white"}
@@ -177,6 +205,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {/* Minus */}
             <button
               onClick={handleDecrement}
+              aria-label="تقليل الكمية"
               disabled={isBusy}
               className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
             >
@@ -191,6 +220,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {/* Plus */}
             <button
               onClick={handleIncrement}
+              aria-label="زيادة الكمية"
               disabled={isBusy || !(product as any).inStock}
               className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
             >

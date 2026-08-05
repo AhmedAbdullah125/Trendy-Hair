@@ -5,6 +5,7 @@ import type { ApiAuthPayload, ApiEnvelope } from '@/lib/apiTypes';
 import { getApiErrorMessage } from '@/lib/apiTypes';
 import { toE164 } from '@/lib/phone';
 import type { RouterLike, SetLoading } from './loginRequest';
+import { appendOAuthClient } from '@/lib/authConfig';
 
 export interface RegisterCredentials {
     name: string;
@@ -28,8 +29,7 @@ export async function registerRequest(
     formData.append('phone', toE164(data.phone, data.dialCode ?? ''));
     formData.append('password', data.password);
     formData.append('grant_type', "password");
-    formData.append('client_id', "a0e57322-f1ef-4a3c-84ff-b9a3d852a559");
-    formData.append('client_secret', "OF3II6JtC3DIrSk5mNVl0ZaPlkP1P8nI5wrf1tYX");
+    appendOAuthClient(formData);
     const headers: Record<string, string> = { 'lang': lang }
     try {
         const response = await api.post<ApiEnvelope<ApiAuthPayload>>(url, formData, { headers });

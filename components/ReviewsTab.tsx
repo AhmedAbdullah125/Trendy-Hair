@@ -56,8 +56,6 @@ const ReviewsTab: React.FC = () => {
   // Fetch reviews from API
   const [page, setPage] = useState(1);
   const { data: reviewsData, isLoading, error } = useGetReviews('ar', page);
-  console.log(reviewsData);
-
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [activeReview, setActiveReview] = useState<Review | null>(null);
 

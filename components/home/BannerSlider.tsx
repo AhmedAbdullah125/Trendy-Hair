@@ -3,6 +3,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
 import "swiper/css";
+import { onImageError, resolveImageUrl } from "../../lib/imageUrl";
 
 type Banner = { id: number | string; image: string; title?: string; url?: string };
 
@@ -16,22 +17,6 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
     const [current, setCurrent] = useState(0);
 
     const hasBanners = banners && banners.length > 0;
-
-    // Helper function to clean escaped slashes and duplicated base URLs from image URLs
-    const cleanImageUrl = (url: string) => {
-        if (!url) return '';
-        // First, replace escaped slashes
-        let cleanedUrl = url.replace(/\\\//g, '/');
-        // Remove duplicated base URL pattern (e.g., https://trandyhairapp.com/api/v1/https://trandyhairapp.com/...)
-        // Extract the last occurrence of https://trandyhairapp.com
-        const matches = cleanedUrl.match(/https:\/\/trandyhairapp\.com/g);
-        if (matches && matches.length > 1) {
-            // Find the last occurrence and keep everything from there
-            const lastIndex = cleanedUrl.lastIndexOf('https://trandyhairapp.com');
-            cleanedUrl = cleanedUrl.substring(lastIndex);
-        }
-        return cleanedUrl;
-    };
 
     if (!hasBanners) return null;
 
@@ -48,7 +33,8 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
                     {banners.map((b) => (
                         <SwiperSlide key={b.id} className="w-full h-full">
                             <img
-                                src={cleanImageUrl(b.image)}
+                                src={resolveImageUrl(b.image)}
+                                onError={onImageError}
                                 alt={b.title || ""}
                                 className="w-full h-full object-cover object-center block"
                                 draggable={false}

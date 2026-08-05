@@ -377,6 +377,9 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
 };
 
 const App: React.FC = () => {
+  // Mounted inside QueryClientProvider (see index.tsx), so the cache can be
+  // cleared on sign-out.
+  const queryClient = useQueryClient();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -398,6 +401,16 @@ const App: React.FC = () => {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('userId');
     localStorage.removeItem('user');
+
+    // Per-account data used to survive sign-out, so on a shared device the
+    // next person inherited the previous user's order history, favourites and
+    // competition run position.
+    localStorage.removeItem(STORAGE_KEYS.ORDERS);
+    localStorage.removeItem(STORAGE_KEYS.FAVOURITES);
+    localStorage.removeItem(STORAGE_KEYS.GAME_STATE);
+
+    // Cached responses belong to the account that just signed out.
+    queryClient.clear();
   };
 
   if (isInitializing) {

@@ -5,6 +5,7 @@ import { useGetCompetitionStages } from './requests/useGetCompetitionStages';
 import { useStartStage, classifyStartFailure } from './requests/useStartStage';
 import { useSubmitAttempt } from './requests/useSubmitAttempt';
 import { useWithdrawCompetition } from './requests/useWithdrawCompetition';
+import { useResumeAttempt } from './requests/useResumeAttempt';
 import { toast } from 'sonner';
 import { Trophy, Play, Clock, Lock, CheckCircle2, Timer, AlertCircle, LogOut, Loader2, ChevronLeft, Coins } from 'lucide-react';
 import { audioService } from '../services/audioService';
@@ -13,6 +14,7 @@ import Timeline from './Timeline';
 import { useData } from '../context/DataContext';
 import { useGetProfile } from './requests/useGetProfile';
 import { formatDinars, formatPoints, pointsToDinars, readWallet } from '../lib/points';
+import { getApiErrorMessage } from '../lib/apiTypes';
 
 const INTERNAL_STORAGE_KEY = STORAGE_KEYS.GAME_STATE;
 
@@ -98,6 +100,17 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
   const startStageMutation = useStartStage();
   const submitAttemptMutation = useSubmitAttempt();
   const withdrawMutation = useWithdrawCompetition();
+  const resumeAttemptMutation = useResumeAttempt();
+
+  /**
+   * An attempt the server still holds open.
+   *
+   * Set whenever we learn of one — either the local timer expired with nothing
+   * submittable, or `start` refused with `attempt_active`. While this is set,
+   * the server rejects both starting a stage and withdrawing, so the only way
+   * forward is to reload it via `attempts/{id}/questions`.
+   */
+  const [activeAttempt, setActiveAttempt] = useState<{ attemptId: number; stageId: number | null } | null>(null);
 
   const isBalanceCapped = wallet.points >= gameSettings.gameBalanceCap;
 
@@ -155,21 +168,41 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
     setGameState((s) => (s === GameState.PLAYING ? s : GameState.IDLE));
   }, [now, waitUntil]);
 
-  // Timer while playing
+  const isTimerRunning =
+    gameState === GameState.PLAYING && !showMilestoneModal && !isSubmitting && !isStartingStage;
+
+  /**
+   * Always the current render's `handleTimeout`.
+   *
+   * The interval used to call it from inside a `setTimeRemaining` updater,
+   * which both ran side effects during a state update and captured
+   * `collectedAnswers`/`pendingPoints` as they were when the effect last ran —
+   * so the forfeit screen reported stale counts. A ref keeps the callback
+   * fresh without resubscribing the interval every second.
+   */
+  const handleTimeoutRef = useRef<() => void>(() => { });
+
+  // The interval now only decrements. No side effects inside the updater.
   useEffect(() => {
-    if (gameState === GameState.PLAYING && !showMilestoneModal && !isSubmitting && !isStartingStage) {
-      timerRef.current = window.setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 0) { handleTimeout(); return 0; }
-          audioService.playTick();
-          return prev - 1;
-        });
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
+    if (!isTimerRunning) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
     }
+    timerRef.current = window.setInterval(() => {
+      setTimeRemaining((prev) => (prev <= 0 ? 0 : prev - 1));
+    }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gameState, showMilestoneModal, isSubmitting, isStartingStage]);
+  }, [isTimerRunning]);
+
+  // Ticking and expiry are consequences of the value, not of the update.
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    if (timeRemaining > 0) {
+      audioService.playTick();
+      return;
+    }
+    handleTimeoutRef.current();
+  }, [timeRemaining, isTimerRunning]);
 
   const stopTimer = () => { if (timerRef.current) clearInterval(timerRef.current); };
 
@@ -180,14 +213,132 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
     return idx >= 0 ? idx : null;
   }, [nextStage, gameStages]);
 
-  /** Running out of time is a loss — submit what was answered and let the server settle it. */
+  /**
+   * Sends an attempt's answers and applies whatever the server decides.
+   *
+   * Shared by the normal end-of-stage path and by the timeout path so a
+   * timeout is settled server-side exactly like any other finish — the client
+   * never decides the outcome on its own.
+   */
+  const submitAnswers = (attemptId: number, answers: CollectedAnswer[]) => {
+    setIsSubmitting(true);
+
+    submitAttemptMutation.mutate({ attemptId, answers }, {
+      onSuccess: (result) => {
+        setIsSubmitting(false);
+        setPendingPoints(result.pendingPoints);
+        // Settled server-side, so nothing is left open.
+        setActiveAttempt(null);
+
+        // A loss arrives as HTTP 200 — it is a game outcome, not a failure.
+        if (!result.cleared) {
+          audioService.playFailure();
+          setLastResult({
+            kind: 'forfeited',
+            points: result.pointsForfeited,
+            correct: result.attempt?.correct_answers ?? 0,
+            total: result.attempt?.total_questions ?? stageQuestions.length,
+          });
+          if (result.blockedUntilMs) setWaitUntil(result.blockedUntilMs);
+          resetRun();
+          setGameState(GameState.LOST_COOLDOWN);
+          return;
+        }
+
+        audioService.playSuccess();
+        setNextStage(result.nextStage);
+        saveRun({
+          ...run,
+          clearedStageIndexes: [...new Set([...run.clearedStageIndexes, run.stageIndex])],
+        });
+        // Stage cleared: the points are staked, not banked. The player now
+        // chooses to leave with the pot or risk it on the next stage.
+        setShowMilestoneModal(true);
+      },
+      onError: () => {
+        setIsSubmitting(false);
+        toast.error('تعذّر إرسال إجاباتك. يرجى المحاولة مجدداً.');
+        // The attempt is still open server-side, so keep a way back to it
+        // rather than dropping the player onto a screen that cannot act.
+        if (attemptId) {
+          setActiveAttempt({ attemptId, stageId: gameStages[run.stageIndex]?.id ?? null });
+        }
+        setGameState(GameState.IDLE);
+      },
+    });
+  };
+
+  /**
+   * The local timer reached zero.
+   *
+   * A local clock expiring proves nothing about the server: the attempt is
+   * still `in_progress` there, and while it is, the API refuses both `start`
+   * (`attempt_active`) and `withdraw` (`competition_withdraw_mid_stage`).
+   * Treating the timeout as final — as this used to — stranded the player with
+   * no way to start, withdraw or resume.
+   */
   const handleTimeout = () => {
     stopTimer();
+
+    // `answers` is validated `required|array|min:1`, so an attempt where
+    // nothing was answered cannot be submitted at all.
+    if (currentAttemptId && collectedAnswers.length > 0) {
+      submitAnswers(currentAttemptId, collectedAnswers);
+      return;
+    }
+
     audioService.playFailure();
+
+    if (currentAttemptId) {
+      // Nothing submittable — leave it open and offer to resume it.
+      setActiveAttempt({ attemptId: currentAttemptId, stageId: gameStages[run.stageIndex]?.id ?? null });
+      setNotice('انتهى وقت السؤال قبل تسجيل أي إجابة. يمكنكِ متابعة المحاولة المفتوحة.');
+      setGameState(GameState.IDLE);
+      return;
+    }
+
     setLastResult({ kind: 'forfeited', points: pendingPoints, correct: collectedAnswers.length, total: stageQuestions.length });
     setPendingPoints(0);
     resetRun();
     setGameState(GameState.LOST_COOLDOWN);
+  };
+
+  // Assigned after the definition above: `handleTimeout` is a `const`, so
+  // touching it earlier in the render would hit the temporal dead zone.
+  handleTimeoutRef.current = handleTimeout;
+
+  /** Reload an attempt the server still has open and drop the player back into it. */
+  const handleResumeAttempt = () => {
+    if (!activeAttempt || resumeAttemptMutation.isPending) return;
+
+    resumeAttemptMutation.mutate(activeAttempt.attemptId, {
+      onSuccess: (data) => {
+        setStageQuestions(data.questions);
+        setCurrentAttemptId(data.attemptId);
+        setCollectedAnswers([]);
+        setTimeRemaining(data.questionTime ?? gameSettings.timeLimitSeconds);
+        questionStartTimeRef.current = Date.now();
+        setNotice(null);
+        setActiveAttempt(null);
+
+        // Point the local run at the stage the attempt actually belongs to, so
+        // the header and stage cards do not describe a different stage.
+        const idx = activeAttempt.stageId !== null
+          ? gameStages.findIndex((s: any) => s.id === activeAttempt.stageId)
+          : -1;
+        saveRun({ ...run, stageIndex: idx >= 0 ? idx : run.stageIndex, questionIndex: 0 });
+
+        setGameState(GameState.PLAYING);
+      },
+      onError: (error) => {
+        // 422 here means it finished elsewhere; 404 that it is gone. Either way
+        // the block is lifted, so clear it and let the player start again.
+        setActiveAttempt(null);
+        setNotice(null);
+        setGameState(GameState.IDLE);
+        toast.error(getApiErrorMessage(error) || 'تعذّر استئناف المحاولة. يمكنكِ بدء جولة جديدة.');
+      },
+    });
   };
 
   const handleStartFailure = (error: unknown) => {
@@ -212,8 +363,16 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
         break;
       }
       case 'attemptActive': {
+        // Recoverable, not a dead end: the payload names the open attempt, so
+        // surface a resume action instead of telling the player to finish
+        // something they have no way to reach.
         setGameState(GameState.IDLE);
-        setNotice(failure.message || 'لديكِ محاولة مفتوحة بالفعل، أكمليها أولاً.');
+        if (failure.attemptId) {
+          setActiveAttempt({ attemptId: failure.attemptId, stageId: failure.stageId });
+          setNotice('لديكِ محاولة مفتوحة. تابعيها للمتابعة أو لإنهائها.');
+        } else {
+          setNotice(failure.message || 'لديكِ محاولة مفتوحة بالفعل، أكمليها أولاً.');
+        }
         break;
       }
       default: {
@@ -247,6 +406,9 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
 
   const startGame = () => {
     if (isBalanceCapped) return;
+    // Starting anything new is refused while an attempt is open; resume it
+    // instead of firing a request that can only come back as `attempt_active`.
+    if (activeAttempt) { handleResumeAttempt(); return; }
     if (waitUntil && now < waitUntil) { setGameState(GameState.LOST_COOLDOWN); return; }
 
     setLastResult(null);
@@ -282,44 +444,7 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
     }
 
     stopTimer();
-    setIsSubmitting(true);
-
-    submitAttemptMutation.mutate({ attemptId: currentAttemptId as number, answers: newCollected }, {
-      onSuccess: (result) => {
-        setIsSubmitting(false);
-        setPendingPoints(result.pendingPoints);
-
-        // A loss arrives as HTTP 200 — it is a game outcome, not a failure.
-        if (!result.cleared) {
-          audioService.playFailure();
-          setLastResult({
-            kind: 'forfeited',
-            points: result.pointsForfeited,
-            correct: result.attempt?.correct_answers ?? 0,
-            total: result.attempt?.total_questions ?? stageQuestions.length,
-          });
-          if (result.blockedUntilMs) setWaitUntil(result.blockedUntilMs);
-          resetRun();
-          setGameState(GameState.LOST_COOLDOWN);
-          return;
-        }
-
-        audioService.playSuccess();
-        setNextStage(result.nextStage);
-        saveRun({
-          ...run,
-          clearedStageIndexes: [...new Set([...run.clearedStageIndexes, run.stageIndex])],
-        });
-        // Stage cleared: the points are staked, not banked. The player now
-        // chooses to leave with the pot or risk it on the next stage.
-        setShowMilestoneModal(true);
-      },
-      onError: () => {
-        setIsSubmitting(false);
-        toast.error('تعذّر إرسال إجاباتك. يرجى المحاولة مجدداً.');
-        setGameState(GameState.IDLE);
-      },
-    });
+    submitAnswers(currentAttemptId as number, newCollected);
   };
 
   /** Continue the ladder — stake the pot on the next stage. */
@@ -347,9 +472,21 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
       },
       onError: (error) => {
         const failure = classifyStartFailure(error);
+        // Withdrawing is refused outright while a stage is open, so say that
+        // plainly rather than repeating a generic failure.
+        if (failure.kind === 'attemptActive') {
+          toast.error('لا يمكن الانسحاب أثناء مرحلة مفتوحة. أنهي المحاولة الحالية أولاً.');
+          return;
+        }
         toast.error(failure.message || 'تعذّر تحويل النقاط. يرجى المحاولة مجدداً.');
       },
     });
+  };
+
+  /** `mm:ss` for the per-question timer; stage `question_time` may exceed 59s. */
+  const formatClock = (totalSeconds: number) => {
+    const s = Math.max(0, Math.floor(totalSeconds));
+    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   };
 
   const formatCountdown = (ms: number) => {
@@ -440,7 +577,27 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
           {renderStageCards()}
         </div>
 
-        {pendingPoints > 0 && (
+        {/* An attempt is open server-side: resuming is the only way forward,
+            since both starting and withdrawing are refused until it settles. */}
+        {activeAttempt && (
+          <div className="mb-3 bg-white border-2 border-app-gold rounded-2xl p-4 animate-fadeIn">
+            <p className="text-sm font-bold text-app-goldDark mb-1">لديكِ محاولة غير مكتملة</p>
+            <p className="text-xs text-app-textSec mb-3 leading-relaxed">
+              لا يمكن بدء مرحلة جديدة أو الانسحاب قبل إنهائها.
+            </p>
+            <button
+              onClick={handleResumeAttempt}
+              disabled={resumeAttemptMutation.isPending}
+              className="w-full flex items-center justify-center gap-2 bg-app-gold text-white font-bold py-3.5 rounded-2xl active:scale-95 transition-transform disabled:opacity-60"
+            >
+              {resumeAttemptMutation.isPending
+                ? <Loader2 size={18} className="animate-spin" />
+                : <><Play fill="currentColor" size={16} /><span>متابعة المحاولة</span></>}
+            </button>
+          </div>
+        )}
+
+        {pendingPoints > 0 && !activeAttempt && (
           <button
             onClick={handleWithdraw}
             disabled={withdrawMutation.isPending}
@@ -453,7 +610,8 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
 
         <button
           onClick={startGame}
-          disabled={isBalanceCapped || isStartingStage}
+          hidden={!!activeAttempt}
+          disabled={isBalanceCapped || isStartingStage || !!activeAttempt}
           className={`font-bold py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-transform ${isBalanceCapped ? 'bg-gray-300 text-white cursor-not-allowed shadow-none' : 'bg-app-gold active:bg-app-goldDark text-white shadow-app-gold/30 active:scale-95'}`}
         >
           {isStartingStage ? <Loader2 size={20} className="animate-spin" /> : isBalanceCapped ? <Lock size={20} /> : <Play fill="currentColor" size={20} />}
@@ -623,7 +781,7 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
         <div className="flex justify-center mb-2">
           <div className={`flex items-center gap-2 px-6 py-2 rounded-2xl border-2 transition-colors duration-300 ${timeRemaining === 0 ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-app-gold/20 text-app-goldDark'}`}>
             <Timer size={20} className={timeRemaining > 0 && timeRemaining <= 10 ? 'animate-pulse' : ''} />
-            <span className="text-xl font-bold tabular-nums">00:{timeRemaining.toString().padStart(2, '0')}</span>
+            <span className="text-xl font-bold tabular-nums">{formatClock(timeRemaining)}</span>
           </div>
         </div>
 

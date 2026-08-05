@@ -70,9 +70,6 @@ const DetailsStep: React.FC<Props> = ({
     const handleGovernorateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         onChangeAddress({ governorate: e.target.value, area: "" });
     };
-    console.log(addressForm);
-
-
     return (
         <div className="flex flex-col h-full animate-fadeIn bg-app-bg">
             <header className="px-6 pt-6 pb-4 bg-white border-b border-app-card/30 flex items-center justify-between">

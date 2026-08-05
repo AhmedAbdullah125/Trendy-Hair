@@ -61,6 +61,7 @@ const CartItemCounter: React.FC<CounterProps> = ({ item, lang }) => {
             {/* Minus */}
             <button
                 onClick={handleDecrement}
+                aria-label="تقليل الكمية"
                 disabled={isBusy}
                 className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
             >
@@ -75,6 +76,7 @@ const CartItemCounter: React.FC<CounterProps> = ({ item, lang }) => {
             {/* Plus */}
             <button
                 onClick={handleIncrement}
+                aria-label="زيادة الكمية"
                 disabled={isBusy}
                 className="w-6 h-6 rounded-lg bg-app-card/60 flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
             >
@@ -110,6 +112,7 @@ const CartStep: React.FC<Props> = ({
                     {cartItems.length > 0 && (
                         <button
                             onClick={onClearAll}
+                            aria-label="تفريغ السلة"
                             className="p-2 hover:bg-red-50 rounded-full text-red-500"
                             title="تفريغ السلة"
                         >
@@ -117,7 +120,7 @@ const CartStep: React.FC<Props> = ({
                         </button>
                     )}
 
-                    <button onClick={onClose} className="p-2 hover:bg-app-bg rounded-full text-app-text">
+                    <button onClick={onClose} aria-label="إغلاق السلة" className="p-2 hover:bg-app-bg rounded-full text-app-text">
                         <ArrowLeft size={24} />
                     </button>
                 </div>
@@ -162,6 +165,7 @@ const CartStep: React.FC<Props> = ({
                                         {/* Delete button */}
                                         <button
                                             onClick={() => onDeleteItem(item)}
+                                            aria-label="حذف المنتج من السلة"
                                             className="text-red-400 p-2"
                                             title="حذف المنتج"
                                         >
