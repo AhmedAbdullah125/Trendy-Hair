@@ -70,7 +70,13 @@ export const useGetOrders = (
         queryKey: ["orders", defaultParams, lang],
         queryFn: () => fetchOrders(defaultParams, lang),
         enabled: !!Cookies.get("token"),
-        staleTime: 1000 * 10, // 30 seconds
+        staleTime: 1000 * 10, // 10 seconds
         gcTime: 1000 * 60, // 1 minute
+        // The list is opened straight after placing an order, and an order the
+        // customer just created must never be missing from it. Checkout does
+        // invalidate `["orders"]`, but this is the cheap belt-and-braces for
+        // any path that does not — a payment-gateway return, for instance,
+        // reloads the app, so the invalidation never ran in this tab.
+        refetchOnMount: 'always',
     });
 };

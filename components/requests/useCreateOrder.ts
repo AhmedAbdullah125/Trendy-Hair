@@ -27,6 +27,24 @@ export const createOrder = async (
 
     if (token) headers.Authorization = `Bearer ${token}`;
 
+    /**
+     * Everything the new order invalidates.
+     *
+     * `orders` was missing, which is why a just-placed order did not show up in
+     * the order list: `useGetOrders` caches under `["orders", params, lang]`
+     * with a 10s staleTime, so opening the list right after checkout served the
+     * pre-order cache. The window is small, but it is exactly the one a customer
+     * (and a tester) uses — place the order, then go look for it.
+     */
+    const invalidateAfterOrder = async () => {
+        if (!qc) return;
+        await Promise.all([
+            qc.invalidateQueries({ queryKey: ["cart"] }),
+            qc.invalidateQueries({ queryKey: ["profile"] }),
+            qc.invalidateQueries({ queryKey: ["orders"] }),
+        ]);
+    };
+
     try {
         const response = await api.post<CreateOrderResponse>(`${API_BASE_URL}/v1/order`, formData, { headers });
         const data = response.data;
@@ -34,11 +52,9 @@ export const createOrder = async (
         const isOnlinePayment = paymentMethod === 'visa' || paymentMethod === 'knet';
 
         if (isOnlinePayment && paymentUrl) {
-            // Invalidate cart + profile (wallet) before redirecting to payment gateway
-            if (qc) {
-                await qc.invalidateQueries({ queryKey: ["cart"] });
-                await qc.invalidateQueries({ queryKey: ["profile"] });
-            }
+            // Flush before handing off to the gateway — the app may be gone
+            // from memory by the time it returns.
+            await invalidateAfterOrder();
             setloading(false);
             window.location.href = paymentUrl;
         } else if (isOnlinePayment) {
@@ -46,20 +62,14 @@ export const createOrder = async (
             // exists and is unpaid. Falling through to the success screen (as
             // this used to) told the customer their payment had gone through
             // when nothing had been charged.
-            if (qc) {
-                await qc.invalidateQueries({ queryKey: ["cart"] });
-                await qc.invalidateQueries({ queryKey: ["profile"] });
-            }
+            await invalidateAfterOrder();
             setloading(false);
             toast.error('تعذّر بدء عملية الدفع. تم إنشاء الطلب ولم يتم الدفع — يمكنكِ إتمام الدفع من صفحة الطلبات.');
             throw new Error('payment_url_missing');
         } else {
             // Cash: go to success screen
             setStep("success");
-            if (qc) {
-                await qc.invalidateQueries({ queryKey: ["cart"] });
-                await qc.invalidateQueries({ queryKey: ["profile"] });
-            }
+            await invalidateAfterOrder();
             setloading(false);
         }
 
