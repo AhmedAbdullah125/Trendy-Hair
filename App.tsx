@@ -259,8 +259,9 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     return (
       <div className="w-full bg-[#F7F4EE] min-h-screen relative shadow-2xl flex flex-col overflow-hidden">
         {paymentResult.outcome === 'paid' ? (
+          // The order number is what a customer can quote; the id is internal.
           <SuccessStep
-            lastOrderId={paymentResult.orderId}
+            lastOrderId={paymentResult.orderNumber ?? paymentResult.orderId}
             onClose={() => {
               dismissPaymentResult();
               navigate('/');
@@ -274,6 +275,8 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
           <PaymentResultScreen
             orderId={paymentResult.orderId}
             outcome={paymentResult.outcome}
+            orderNumber={paymentResult.orderNumber}
+            message={paymentResult.message}
             onClose={() => {
               dismissPaymentResult();
               navigate('/');

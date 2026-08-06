@@ -6,6 +6,10 @@ type Props = {
     orderId: string;
     /** Only the non-success outcomes reach here; `paid` renders `SuccessStep`. */
     outcome: Exclude<PaymentOutcome, 'paid'>;
+    /** Reference to show the customer, when the callback supplied one. */
+    orderNumber?: string;
+    /** Localised sentence from the server, shown in place of our own wording. */
+    message?: string;
     onClose: () => void;
     onViewOrderDetails: (orderId: string) => void;
 };
@@ -25,7 +29,14 @@ type Props = {
  * their payment failed when the money may already have left is worse than
  * asking them to check.
  */
-const PaymentResultScreen: React.FC<Props> = ({ orderId, outcome, onClose, onViewOrderDetails }) => {
+const PaymentResultScreen: React.FC<Props> = ({
+    orderId,
+    outcome,
+    orderNumber,
+    message,
+    onClose,
+    onViewOrderDetails,
+}) => {
     const failed = outcome === 'failed';
 
     return (
@@ -42,14 +53,24 @@ const PaymentResultScreen: React.FC<Props> = ({ orderId, outcome, onClose, onVie
                 {failed ? "لم تتم عملية الدفع" : "لم يتم تأكيد الدفع بعد"}
             </h1>
 
+            {/*
+              * The server's sentence is used for a genuine failure only.
+              *
+              * It is chosen from a single `paid` boolean, so an unconfirmed
+              * payment gets the failure text — which states outright that
+              * nothing was charged. That is a promise nobody can make while the
+              * charge is still being confirmed, and it is the whole reason the
+              * pending case is distinguished at all, so that case keeps its own
+              * wording.
+              */}
             <p className="text-app-textSec mb-2 leading-relaxed">
                 {failed
-                    ? "لم يتم خصم أي مبلغ. تم حفظ طلبك ويمكنكِ إتمام الدفع من صفحة الطلبات."
+                    ? (message ?? "لم يتم خصم أي مبلغ. تم حفظ طلبك ويمكنكِ إتمام الدفع من صفحة الطلبات.")
                     : "طلبك محفوظ، ولكن لم يصلنا تأكيد الدفع حتى الآن. يرجى مراجعة صفحة الطلب قبل إعادة المحاولة."}
             </p>
 
             <p className="text-xs text-app-textSec mb-8">
-                رقم الطلب: <span className="font-bold text-app-text">{orderId}</span>
+                رقم الطلب: <span className="font-bold text-app-text">{orderNumber ?? orderId}</span>
             </p>
 
             <div className="w-full max-w-[320px] space-y-3">

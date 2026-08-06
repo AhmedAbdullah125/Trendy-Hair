@@ -27,6 +27,19 @@ export type PaymentOutcome =
 export interface PaymentReturn {
   orderId: string;
   outcome: PaymentOutcome;
+  /** Human-readable order reference, when the gateway callback supplied one. */
+  orderNumber?: string;
+  /**
+   * Localised sentence built by the server.
+   *
+   * Safe to display for `paid` and `failed`, where it saves us maintaining a
+   * second copy of the wording in the customer's language.
+   *
+   * **Not** for `pending`. The server picks this from a single `paid` boolean,
+   * so an unconfirmed charge receives the failure text — which asserts that
+   * nothing was charged. See `PaymentResultScreen`.
+   */
+  message?: string;
 }
 
 /**
@@ -46,19 +59,36 @@ export const parsePaymentReturn = (search: string): PaymentReturn | null => {
   // links carrying an unrelated `orderId` from triggering a payment screen.
   if (!orderId || !status) return null;
 
-  // `paymentStatus` mirrors the order's own `payment_status` column, refreshed
-  // after the webhook validated the charge — so it outranks `status`, which
-  // only says which redirect the gateway chose.
-  if (paymentStatus === 'paid') return { orderId, outcome: 'paid' };
-  if (status === 'failed' || paymentStatus === 'failed') return { orderId, outcome: 'failed' };
+  const extras = {
+    orderNumber: params.get('orderNumber') ?? undefined,
+    message: params.get('message') ?? undefined,
+  };
 
-  return { orderId, outcome: 'pending' };
+  /*
+   * `paymentStatus` is the order's own column, re-read after the webhook
+   * validated the charge, so it decides.
+   *
+   * `status` cannot: the server now sends `failed` for anything that is not
+   * paid, which lumps a declined card together with a charge still awaiting
+   * confirmation. Those need different words — one says no money moved, the
+   * other cannot promise that — so the distinction is taken from
+   * `paymentStatus` and `status` is only a fallback when it is absent.
+   */
+  if (paymentStatus === 'paid') return { orderId, outcome: 'paid', ...extras };
+  if (paymentStatus === 'failed') return { orderId, outcome: 'failed', ...extras };
+  if (paymentStatus) return { orderId, outcome: 'pending', ...extras };
+
+  // No paymentStatus at all — fall back to the coarse flag.
+  if (status === 'failed') return { orderId, outcome: 'failed', ...extras };
+
+  return { orderId, outcome: 'pending', ...extras };
 };
 
 /** Strips the payment parameters, leaving the rest of the URL intact. */
 export const clearPaymentParams = (search: string): string => {
   const params = new URLSearchParams(search);
-  ['orderId', 'status', 'paymentStatus', 'paymentId', 'Id'].forEach((key) => params.delete(key));
+  ['orderId', 'orderNumber', 'status', 'paymentStatus', 'message', 'paymentId', 'Id']
+    .forEach((key) => params.delete(key));
 
   const rest = params.toString();
   return rest ? `?${rest}` : '';
