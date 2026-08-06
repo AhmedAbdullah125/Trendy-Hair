@@ -21,10 +21,24 @@ import { getApiCode } from '@/lib/apiResult';
  * accepted the app has to sign in again. `AuthScreen` does that automatically
  * with the credentials already on screen.
  *
- * No SMS is actually delivered yet — `dispatchVerificationCode()` is an empty
- * placeholder and the accepted code is the fixed `services.otp.static_code`
- * (`OTP_STATIC_CODE`, default `1234`). The flow is real; only delivery is
- * pending, so wiring a provider later needs no frontend change.
+ * Delivery is live as of backend `7fddb4d`: the code is a random four digits,
+ * sent over WhatsApp through WAWP. It is no longer the fixed `1234` this note
+ * used to describe, so nothing can be assumed about its value.
+ *
+ * Two environment settings still change what arrives, which is worth knowing
+ * when a code never turns up rather than assuming the app is at fault:
+ *
+ *   - `OTP_STATIC_CODE` pins the code to a fixed value instead of randomising
+ *     it — intended for QA accounts and for environments with no WAWP
+ *     credentials
+ *   - with `WAWP_INSTANCE_ID` / `WAWP_ACCESS_TOKEN` unset, the server logs a
+ *     warning and sends nothing at all; combined with an empty
+ *     `OTP_STATIC_CODE` that leaves a random code nobody can discover, and no
+ *     new account can be verified
+ *
+ * Four digits matches `OtpInput`'s default length. The server accepts 4–8
+ * (`VerifyCodeRequest`), so a longer code from a future provider would need
+ * that length passed through — nothing else here.
  */
 
 export interface VerificationResult {
