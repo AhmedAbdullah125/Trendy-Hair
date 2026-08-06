@@ -8,6 +8,7 @@ import { useGetCart } from "./requests/useGetCart";
 import { addToCart } from "./requests/addToCart";
 import { useQueryClient } from "@tanstack/react-query";
 import { onImageError, resolveImageUrl } from "../lib/imageUrl";
+import { resolveFavourite, shouldClearOverride } from "../lib/favouriteState";
 
 interface ProductCardProps {
   product: Product;
@@ -69,14 +70,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
    * soon as fresh server data arrives.
    */
   const serverFav = (product as any).isFavorite;
-  const isFav = useMemo(() => {
-    const base = typeof serverFav === 'boolean' ? serverFav : isFavourite;
-    return localFavOverride === null ? base : localFavOverride;
-  }, [isFavourite, localFavOverride, serverFav]);
 
+  /** What the underlying data says, ignoring the optimistic flip. */
+  const baseFav = typeof serverFav === 'boolean' ? serverFav : isFavourite;
+
+  const isFav = resolveFavourite(baseFav, localFavOverride);
+
+  /**
+   * Drop the optimistic flip only once the underlying data agrees with it.
+   *
+   * This used to clear on any change to `serverFav` *or* `isFavourite`, which
+   * made the heart appear not to react at all: tapping it calls
+   * `onToggleFavourite`, that updates the favourites array in `App`, the
+   * `isFavourite` prop changes, and this effect fired in the same tick and
+   * threw the flip away — leaving the heart on the still-stale server value.
+   *
+   * Keying on agreement instead means the override survives exactly as long as
+   * it is needed, and disappears by itself when the refetched row catches up.
+   */
   useEffect(() => {
-    setLocalFavOverride(null);
-  }, [serverFav, isFavourite]);
+    if (shouldClearOverride(baseFav, localFavOverride)) {
+      setLocalFavOverride(null);
+    }
+  }, [baseFav, localFavOverride]);
 
   const handleToggleFavourite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -95,7 +111,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     // The favourites list and any product listing carrying `is_favorite` are
     // now stale; this was never invalidated, so the Favourites tab kept
     // showing removed items until its staleTime lapsed.
+    //
+    // The listings matter as much as the list itself: `is_favorite` rides along
+    // on every product row, so leaving them cached means the heart reverts to
+    // the old value as soon as the card remounts — navigating away and back was
+    // enough. Refetching them lets the optimistic override retire against real
+    // data instead of propping up the UI indefinitely.
     qc.invalidateQueries({ queryKey: ["favourites"] });
+    ["home", "products", "productsbycategory", "productsByBrand", "product"].forEach((key) =>
+      qc.invalidateQueries({ queryKey: [key] })
+    );
   };
 
   // ── Add to cart (first time) ──────────────────────────────────────────────

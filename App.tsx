@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
@@ -42,7 +42,36 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  /**
+   * The cart is a location, not a flag.
+   *
+   * It used to be `useState`, rendered in place of `<Routes>`. That gave it no
+   * history entry of its own, with two consequences reported as bugs: pressing
+   * the browser's Back button while in the cart appeared to do nothing — the
+   * URL changed underneath but `isCartOpen` was still true, so the cart kept
+   * rendering over whatever it had gone back to — and opening the cart as the
+   * first thing on a fresh visit meant Back left the site altogether, because
+   * there was no in-app entry to return to.
+   *
+   * Deriving it from the URL makes Back close the cart natively, and costs
+   * nothing elsewhere: the early return below happens before `<Routes>`, so
+   * `/cart` needs no route of its own and never reaches the catch-all.
+   */
+  const isCartOpen = location.pathname === '/cart';
+
+  const openCart = useCallback(() => navigate('/cart'), [navigate]);
+
+  const closeCart = useCallback(() => {
+    // `key === 'default'` means this is the first entry in the session — a
+    // direct load or a refresh on /cart. Going back from there would leave the
+    // site, so land on home instead, replacing rather than stacking.
+    if (location.key === 'default') {
+      navigate('/', { replace: true });
+    } else {
+      navigate(-1);
+    }
+  }, [navigate, location.key]);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [favourites, setFavourites] = useState<number[]>([]);
   const [pendingOrderDetailsId, setPendingOrderDetailsId] = useState<string | null>(null);
@@ -210,8 +239,9 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
 
   const handleViewOrderDetails = (orderId: string) => {
     setPendingOrderDetailsId(null);
+    // Navigating away *is* closing the cart now that it is a location, so the
+    // separate close call this used to need would only have been a no-op.
     navigate(`/account/order/${orderId}`);
-    setIsCartOpen(false);
   };
 
   if (paymentSuccessData) {
@@ -245,7 +275,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
         ) : (
           <CartFlow
             cartItems={cartItems}
-            onClose={() => setIsCartOpen(false)}
+            onClose={closeCart}
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
             onClearCart={handleClearCart}
@@ -270,7 +300,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                 <HomeTab
                   cartCount={cartCount}
                   onAddToCart={handleAddToCart}
-                  onOpenCart={() => setIsCartOpen(true)}
+                  onOpenCart={openCart}
                   favourites={favourites}
                   onToggleFavourite={handleToggleFavourite}
                 />
@@ -282,7 +312,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                 <HomeTab
                   cartCount={cartCount}
                   onAddToCart={handleAddToCart}
-                  onOpenCart={() => setIsCartOpen(true)}
+                  onOpenCart={openCart}
                   favourites={favourites}
                   onToggleFavourite={handleToggleFavourite}
                 />
@@ -294,7 +324,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                 <HomeTab
                   cartCount={cartCount}
                   onAddToCart={handleAddToCart}
-                  onOpenCart={() => setIsCartOpen(true)}
+                  onOpenCart={openCart}
                   favourites={favourites}
                   onToggleFavourite={handleToggleFavourite}
                 />
@@ -334,7 +364,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                   onToggleFavourite={handleToggleFavourite}
                   onAddToCart={handleAddToCart}
                   onLogout={onLogout}
-                  onOpenCart={() => setIsCartOpen(true)}
+                  onOpenCart={openCart}
                 />
               }
             />

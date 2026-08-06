@@ -16,6 +16,7 @@ import SideMenuDrawer from "./SideMenuDrawer";
 import HomeContent from "./HomeContent";
 import CategoryProductsGrid from "./CategoryProductsGrid";
 import ProductDetailsView from "./ProductDetailsView";
+import { useCloseOnBack } from "../../hooks/useCloseOnBack";
 
 interface HomeTabProps {
     cartCount: number;
@@ -157,6 +158,9 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     // Handlers
     const closeMenu = useCallback(() => setIsMenuOpen(false), []);
     const toggleMenu = useCallback(() => setIsMenuOpen((p) => !p), []);
+
+    // Back dismisses the drawer rather than leaving the page it is covering.
+    useCloseOnBack(isMenuOpen, closeMenu);
 
     const handleCategoryClick = useCallback((name: string, id: string) => {
         navigate(`/category/${encodeURIComponent(name)}?id=${id}`);

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { X, ChevronLeft, Wallet } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faInstagram, faTiktok, faSnapchat, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
@@ -29,18 +29,31 @@ const SideMenuDrawer: React.FC<Props> = ({
 }) => {
     if (!isOpen) return null;
 
-    const handleExternalLinkClick = (e: React.MouseEvent, url: string) => {
-        e.preventDefault();
-        onClose();
-        if (!url) return;
-        try {
-            const win = window.open(url, '_blank', 'noopener,noreferrer');
-            if (!win || win.closed || typeof win.closed === 'undefined') {
-                window.location.href = url;
-            }
-        } catch {
-            window.location.href = url;
-        }
+    /**
+     * Closes the drawer and lets the browser follow the link.
+     *
+     * This used to cancel the click and call `window.open(url, '_blank',
+     * 'noopener,noreferrer')`, falling back to `window.location.href = url`
+     * when the returned handle was falsy — treating that as "the popup was
+     * blocked". But `window.open` returns `null` **by specification** whenever
+     * `noopener` is passed: the whole point of the flag is that the opener gets
+     * no reference to the new window. So the fallback fired on every single
+     * click, and every link opened a new tab *and* navigated the tab behind it
+     * to the same URL — leaving the site entirely.
+     *
+     * The anchors already carry `target="_blank"` and `rel="noopener noreferrer"`,
+     * which does exactly the intended thing natively. A genuine user click on an
+     * anchor is not subject to popup blocking either, so the fallback this
+     * replaced was guarding against something that could not happen.
+     */
+    const handleExternalLinkClick = () => {
+        // Deferred by a tick on purpose. `onClose()` unmounts this drawer, and
+        // React flushes a click handler's state update synchronously — so
+        // closing inline can tear the anchor out of the DOM before the browser
+        // has acted on it, which can swallow the navigation it was supposed to
+        // trigger. Letting the current task finish first keeps the element
+        // alive long enough for the default action to be taken.
+        setTimeout(onClose, 0);
     };
 
     const handleClose = (e?: React.MouseEvent) => {
@@ -94,7 +107,7 @@ const SideMenuDrawer: React.FC<Props> = ({
                             href={techBookingUrl || "https://api.whatsapp.com/send?phone=96599007898"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => handleExternalLinkClick(e, techBookingUrl || "https://api.whatsapp.com/send?phone=96599007898")}
+                            onClick={handleExternalLinkClick}
                             className="flex items-center justify-center w-full h-10 rounded-2xl bg-app-gold text-white text-center text-sm font-medium shadow-md shadow-app-gold/20 transition-all active:scale-[0.98] hover:bg-app-goldDark cursor-pointer"
                         >
                             حجز التكنك أونلاين ( المرة الأولى مجانا )
@@ -104,7 +117,7 @@ const SideMenuDrawer: React.FC<Props> = ({
                             href="https://onelink.to/maison.de.noor.salon"
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => handleExternalLinkClick(e, "https://onelink.to/maison.de.noor.salon")}
+                            onClick={handleExternalLinkClick}
                             className="flex items-center justify-center w-full h-10 rounded-2xl bg-transparent text-app-gold border border-app-gold text-center text-sm font-medium transition-all active:scale-[0.98] hover:bg-app-gold/5 cursor-pointer"
                         >
                             حجز مواعيد التكنت بالصالون
@@ -117,7 +130,7 @@ const SideMenuDrawer: React.FC<Props> = ({
                                 href="https://www.instagram.com/trandyhair"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={(e) => handleExternalLinkClick(e, "https://www.instagram.com/trandyhair")}
+                                onClick={handleExternalLinkClick}
                                 className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
                                 aria-label="Instagram"
                             >
@@ -127,7 +140,7 @@ const SideMenuDrawer: React.FC<Props> = ({
                                 href="https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={(e) => handleExternalLinkClick(e, "https://www.tiktok.com/@trandyhair?_t=ZS-8yhnXac3kFV&_r=1")}
+                                onClick={handleExternalLinkClick}
                                 className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
                                 aria-label="TikTok"
                             >
@@ -137,7 +150,7 @@ const SideMenuDrawer: React.FC<Props> = ({
                                 href="https://www.snapchat.com/@trandyhairnoor?src=QR_CODE"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={(e) => handleExternalLinkClick(e, "https://www.snapchat.com/@trandyhairnoor?src=QR_CODE")}
+                                onClick={handleExternalLinkClick}
                                 className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
                                 aria-label="Snapchat"
                             >
@@ -147,7 +160,7 @@ const SideMenuDrawer: React.FC<Props> = ({
                                 href="https://api.whatsapp.com/send?phone=96599007898"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={(e) => handleExternalLinkClick(e, "https://api.whatsapp.com/send?phone=96599007898")}
+                                onClick={handleExternalLinkClick}
                                 className="h-10 w-10 rounded-full bg-app-bg flex items-center justify-center text-app-gold text-lg hover:bg-app-card active:scale-95 transition-all cursor-pointer"
                                 aria-label="WhatsApp"
                             >
@@ -161,8 +174,8 @@ const SideMenuDrawer: React.FC<Props> = ({
                     <a
                         href="https://raiyansoft.net"
                         target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => handleExternalLinkClick(e, "https://raiyansoft.net")}
+                        rel="noopener noreferrer"
+                        onClick={handleExternalLinkClick}
                         className="text-[10px] text-app-textSec text-center font-alexandria block hover:text-app-gold cursor-pointer"
                     >
                         Powered by raiyansoft
