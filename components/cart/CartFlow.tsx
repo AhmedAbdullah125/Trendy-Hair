@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useGetProfile } from "../requests/useGetProfile";
 import { readWallet } from "../../lib/points";
+import { getApiErrorMessage } from "../../lib/apiTypes";
 
 interface CartFlowProps {
     cartItems: CartItem[];
@@ -68,6 +69,16 @@ const CartFlow: React.FC<CartFlowProps> = ({
     // offered: pending orders reserve part of the balance, and only the server
     // knows about that. Null until an order comes back.
     const [appliedWallet, setAppliedWallet] = useState<number | null>(null);
+
+    /**
+     * Why the last checkout attempt failed, or null if it has not failed.
+     *
+     * A failure used to be a toast and nothing else: it faded after a few
+     * seconds and left the screen looking exactly as it had before, with no
+     * indication that anything had gone wrong or what to do next. Holding the
+     * reason in state keeps it on screen next to a retry button.
+     */
+    const [orderError, setOrderError] = useState<{ message: string; canRetry: boolean } | null>(null);
 
     const qc = useQueryClient();
     const delMut = useDeleteCartItem();
@@ -177,6 +188,10 @@ const CartFlow: React.FC<CartFlowProps> = ({
     };
     const navigate = useNavigate();
     const handlePay = async () => {
+        // Clear the previous failure so a retry does not show a stale reason
+        // alongside a fresh attempt.
+        setOrderError(null);
+
         if (!addressForm.governorate || !addressForm.area || !addressForm.details) {
             toast.error("يرجى إكمال جميع بيانات العنوان");
             return;
@@ -228,9 +243,26 @@ const CartFlow: React.FC<CartFlowProps> = ({
             } else {
                 setAppliedWallet(null);
             }
-        } catch {
-            // createOrder already surfaced the failure to the user.
+        } catch (err) {
             setAppliedWallet(null);
+
+            // `payment_url_missing` means the order was created but the gateway
+            // never started — retrying would place a second order, so it gets
+            // its own wording and no retry affordance.
+            const isPaymentHandoffFailure =
+                err instanceof Error && err.message === 'payment_url_missing';
+
+            setOrderError(
+                isPaymentHandoffFailure
+                    ? {
+                        message: 'تم إنشاء طلبك ولكن تعذّر بدء عملية الدفع. يمكنكِ إتمام الدفع من صفحة الطلبات.',
+                        canRetry: false,
+                    }
+                    : {
+                        message: getApiErrorMessage(err) || 'تعذّر إتمام الطلب. يرجى المحاولة مرة أخرى.',
+                        canRetry: true,
+                    }
+            );
         }
     };
 
@@ -253,6 +285,8 @@ const CartFlow: React.FC<CartFlowProps> = ({
                 setPaymentMethod={setPaymentMethod}
                 isProcessing={isProcessing}
                 onPay={handlePay}
+                orderError={orderError}
+                onRetry={handlePay}
             />
         );
     }
@@ -277,6 +311,12 @@ const CartFlow: React.FC<CartFlowProps> = ({
             onGoDetails={() => setStep("details")}
             onDeleteItem={handleDeleteItem}
             onClearAll={handleClearAll}
+            onViewProduct={(productId) => {
+                // The cart is an overlay above the router, so it has to close or
+                // it would simply cover the product page it just opened.
+                onClose();
+                navigate(`/product/${productId}`);
+            }}
         />
     );
 };

@@ -4,6 +4,7 @@ import type { CartItem } from "../../App";
 import { addToCart } from "../requests/addToCart";
 import { useDeleteCartItem } from "../requests/useDeleteCartItem";
 import { useQueryClient } from "@tanstack/react-query";
+import { onImageError, resolveImageUrl } from "../../lib/imageUrl";
 
 type Props = {
     cartItems: CartItem[];
@@ -15,6 +16,9 @@ type Props = {
 
     onDeleteItem: (item: CartItem) => void;
     onClearAll: () => void;
+
+    /** Opens the product's details page and closes the cart. */
+    onViewProduct?: (productId: number) => void;
 };
 
 // ── Per-item counter ──────────────────────────────────────────────────────────
@@ -102,6 +106,7 @@ const CartStep: React.FC<Props> = ({
     onGoDetails,
     onDeleteItem,
     onClearAll,
+    onViewProduct,
 }) => {
     return (
         <div className="flex flex-col h-full animate-fadeIn">
@@ -146,15 +151,38 @@ const CartStep: React.FC<Props> = ({
                                 key={item.id}
                                 className="bg-white rounded-3xl p-4 shadow-sm border border-app-card/30 flex gap-4"
                             >
-                                <div className="w-24 h-24 rounded-2xl overflow-hidden bg-app-bg border border-app-card/10 flex-shrink-0">
-                                    <img src={img} alt={item.product.name} className="w-full h-full object-cover" />
-                                </div>
+                                {/*
+                                  * The cart was a dead end: nothing here linked back to
+                                  * the product, so checking a detail meant leaving the
+                                  * cart and finding it again by hand. Image and title
+                                  * are the two things people press to mean "show me
+                                  * this", so both open it.
+                                  */}
+                                <button
+                                    type="button"
+                                    onClick={() => onViewProduct?.(item.product.id)}
+                                    aria-label={`عرض تفاصيل ${item.product.name}`}
+                                    className="w-24 h-24 rounded-2xl overflow-hidden bg-app-bg border border-app-card/10 flex-shrink-0 active:scale-95 transition-transform"
+                                >
+                                    <img
+                                        src={resolveImageUrl(img)}
+                                        onError={onImageError}
+                                        alt={item.product.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </button>
 
                                 <div className="flex-1 flex flex-col justify-between">
                                     <div>
-                                        <h3 className="text-sm font-bold text-app-text leading-tight mb-1">
-                                            {item.product.name}
-                                        </h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => onViewProduct?.(item.product.id)}
+                                            className="text-start w-full"
+                                        >
+                                            <h3 className="text-sm font-bold text-app-text leading-tight mb-1 hover:text-app-gold transition-colors">
+                                                {item.product.name}
+                                            </h3>
+                                        </button>
                                         <p className="text-xs font-bold text-app-gold">{(item.product as any)?.price}</p>
                                     </div>
 

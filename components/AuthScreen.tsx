@@ -54,14 +54,22 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
 
     // The name field accepted anything — "123" registered fine, and the
     // customers table is full of digit-only and keyboard-mash names as a
-    // result. The API only checks `required|string|max:255`, so this is the
-    // only gate. `\p{L}` accepts Arabic and Latin alike.
+    // result. `\p{L}` accepts Arabic and Latin alike.
+    //
+    // Kept identical to `RegisterRequest` (backend `884da51`): letters and
+    // spaces only, 2–100. Apostrophes and hyphens were allowed here, so
+    // "Abdul-Rahman" passed this check and then failed server-side with a 422
+    // pointing at a field the customer had already been told was fine.
     const trimmedName = name.trim();
     if (trimmedName.length < 2) {
       setError('الاسم يجب أن يكون حرفين على الأقل');
       return;
     }
-    if (!/^[\p{L}\s'-]+$/u.test(trimmedName)) {
+    if (trimmedName.length > 100) {
+      setError('الاسم يجب أن لا يتجاوز 100 حرف');
+      return;
+    }
+    if (!/^[\p{L}\s]+$/u.test(trimmedName)) {
       setError('الاسم يجب أن يحتوي على حروف فقط (بدون أرقام أو رموز)');
       return;
     }
@@ -84,7 +92,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         setIsLoading,
         'ar',
         routerAdapter,
-        () => setView('verify')
+        () => setView('verify'),
+        setError
       );
     } catch (err) {
       console.error('Registration error:', err);
@@ -119,7 +128,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         setIsLoading,
         'ar',
         routerAdapter,
-        () => setView('verify')
+        () => setView('verify'),
+        setError
       );
     } catch (err) {
       console.error('Login error:', err);
@@ -140,7 +150,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         { phone, password, dialCode },
         setIsLoading,
         'ar',
-        routerAdapter
+        routerAdapter,
+        undefined,
+        setError
       );
     } catch (err) {
       console.error('Post-verification login error:', err);

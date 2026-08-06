@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Banknote, CheckCircle2, ChevronDown, CreditCard, Package, Wallet } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Banknote, CheckCircle2, ChevronDown, CreditCard, Package, RotateCcw, Wallet } from "lucide-react";
 import { useGetProfile } from "../requests/useGetProfile";
 import { useGetGovernorates } from "../requests/useGetGovernorates";
 import { useGetCities } from "../requests/useGetCities";
@@ -31,6 +31,10 @@ type Props = {
 
     isProcessing: boolean;
     onPay: () => void;
+
+    /** Why the last attempt failed, or null. `canRetry` is false when the order was created. */
+    orderError?: { message: string; canRetry: boolean } | null;
+    onRetry?: () => void;
 };
 
 const DetailsStep: React.FC<Props> = ({
@@ -50,6 +54,8 @@ const DetailsStep: React.FC<Props> = ({
     setPaymentMethod,
     isProcessing,
     onPay,
+    orderError = null,
+    onRetry,
 }) => {
     const { data: profileData, isLoading: profileLoading } = useGetProfile('ar');
     const { data: governoratesData, isLoading: governoratesLoading } = useGetGovernorates('ar');
@@ -317,6 +323,36 @@ const DetailsStep: React.FC<Props> = ({
                         <span>{finalTotal.toFixed(3)} د.ك</span>
                     </div>
                 </div>
+
+                {/*
+                  * A failed checkout used to be a toast and nothing more, so by
+                  * the time anyone looked the screen was indistinguishable from
+                  * one where they had simply not pressed pay yet. This keeps the
+                  * reason on screen with the retry next to it.
+                  */}
+                {orderError && !isProcessing && (
+                    <div
+                        role="alert"
+                        className="mb-3 p-4 rounded-2xl bg-red-50 border border-red-200 flex flex-col gap-3"
+                    >
+                        <div className="flex items-start gap-2">
+                            <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                            <p className="text-sm font-bold text-red-600 leading-relaxed">
+                                {orderError.message}
+                            </p>
+                        </div>
+
+                        {orderError.canRetry && onRetry && (
+                            <button
+                                onClick={onRetry}
+                                className="w-full bg-red-500 text-white font-bold py-3 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2"
+                            >
+                                <RotateCcw size={18} />
+                                إعادة محاولة الطلب
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 <button
                     onClick={onPay}

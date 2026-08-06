@@ -3,6 +3,7 @@ import {
     Heart, Info, Mail, Phone, ChevronLeft, XCircle, Instagram, Ghost, Music2, ShoppingBag, Wallet, Award, Gamepad2, User, Edit2,
     PackageCheck, X
 } from 'lucide-react';
+import { onImageError, resolveImageUrl } from '../../lib/imageUrl';
 
 interface AccountMenuProps {
     currentUser: {
@@ -40,8 +41,10 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                 <div className="flex items-center gap-4">
                     {currentUser.photo && !currentUser.photo.includes('unknown.svg') ? (
                         <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-app-gold/10 flex-shrink-0 shadow-inner">
+                            {/* Same resolution the rest of the app uses — see EditAccountForm. */}
                             <img
-                                src={currentUser.photo}
+                                src={resolveImageUrl(currentUser.photo)}
+                                onError={onImageError}
                                 alt="Profile Avatar"
                                 className="w-full h-full object-cover"
                             />

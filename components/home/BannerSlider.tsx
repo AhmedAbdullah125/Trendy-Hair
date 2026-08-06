@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
@@ -18,13 +18,29 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
     const navigate = useNavigate();
     const [current, setCurrent] = useState(0);
 
+    // Tapping a banner used to do nothing visible until the destination
+    // mounted and started its own fetch — long enough on a phone connection to
+    // read as a dead tap, so people tapped again. This marks the banner busy
+    // the moment it is pressed and hands over to the destination's loader.
+    const [pendingId, setPendingId] = useState<Banner["id"] | null>(null);
+    const externalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => () => {
+        if (externalTimer.current) clearTimeout(externalTimer.current);
+    }, []);
+
     const hasBanners = banners && banners.length > 0;
 
     if (!hasBanners) return null;
 
     const handleBannerClick = (b: Banner) => {
         if (!b.url || !b.url.trim()) return;
+        // A second tap while the first is still resolving would open the target
+        // twice — two tabs for an external link.
+        if (pendingId !== null) return;
         const target = b.url.trim();
+
+        setPendingId(b.id);
 
         if (/^https?:\/\//i.test(target)) {
             window.open(target, '_blank', 'noopener,noreferrer');
@@ -33,6 +49,13 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
         } else {
             navigate(`/${target}`);
         }
+
+        // Normally the route change unmounts this slider and the destination's
+        // own loader takes over. Two cases never unmount it: an external link
+        // opens in a new tab, and a banner pointing at the route we are already
+        // on is a no-op navigation. Without this the spinner would sit there
+        // forever, so it always gets cleared.
+        externalTimer.current = setTimeout(() => setPendingId(null), 1200);
     };
 
     return (
@@ -51,9 +74,10 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
                             <SwiperSlide key={b.id} className="w-full h-full">
                                 <div
                                     onClick={() => handleBannerClick(b)}
-                                    className={`w-full h-full ${hasLink ? "cursor-pointer active:opacity-90 transition-opacity" : ""}`}
+                                    className={`relative w-full h-full ${hasLink ? "cursor-pointer active:opacity-90 transition-opacity" : ""}`}
                                     role={hasLink ? "button" : undefined}
                                     tabIndex={hasLink ? 0 : undefined}
+                                    aria-busy={pendingId === b.id || undefined}
                                 >
                                     <img
                                         src={resolveImageUrl(b.image)}
@@ -62,6 +86,12 @@ const BannerSlider: React.FC<Props> = ({ banners, disabled, intervalMs = 2000 })
                                         className="w-full h-full object-cover object-center block"
                                         draggable={false}
                                     />
+
+                                    {pendingId === b.id && (
+                                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 backdrop-blur-[1px]">
+                                            <div className="w-9 h-9 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                                        </div>
+                                    )}
                                 </div>
                             </SwiperSlide>
                         );

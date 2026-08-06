@@ -46,8 +46,35 @@ export async function loginRequest(
     lang: string,
     router: RouterLike,
     /** Called when the account exists but has not confirmed its code yet. */
-    onVerificationRequired?: () => void
+    onVerificationRequired?: () => void,
+    /**
+     * Called with the reason a sign-in failed.
+     *
+     * A wrong password was reported only as a toast, which fades after a few
+     * seconds — long enough to miss entirely if you were still looking at the
+     * keyboard. Callers that pass this render the reason inline instead, where
+     * it stays until the next attempt, and the toast is suppressed so the same
+     * message is not delivered twice.
+     */
+    onError?: (message: string) => void
 ): Promise<void> {
+    /** Inline when the caller can render it, red toast otherwise. */
+    const reportFailure = (message: string) => {
+        if (onError) {
+            onError(message);
+            return;
+        }
+
+        toast(message, {
+            style: {
+                background: "#dc3545",
+                color: "#fff",
+                borderRadius: "10px",
+                boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
+            },
+        });
+    };
+
     setLoading(true)
     // clear token from cookies
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -131,25 +158,10 @@ export async function loginRequest(
 
         }
         else {
-            toast(message, {
-                style: {
-                    background: "#dc3545",
-                    color: "#fff",
-                    borderRadius: "10px",
-                    boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
-                },
-            });
+            reportFailure(message || 'تعذّر تسجيل الدخول.');
         }
     } catch (error) {
         setLoading(false);
-        const errorMessage = getApiErrorMessage(error);
-        toast(errorMessage, {
-            style: {
-                background: "#dc3545",
-                color: "#fff",
-                borderRadius: "10px",
-                boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
-            },
-        });
+        reportFailure(getApiErrorMessage(error) || 'تعذّر تسجيل الدخول.');
     }
 }

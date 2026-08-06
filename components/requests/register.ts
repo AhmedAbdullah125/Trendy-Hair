@@ -22,8 +22,31 @@ export async function registerRequest(
     lang: string,
     router: RouterLike,
     /** Called when the account was created but still needs its code confirmed. */
-    onVerificationRequired?: () => void
+    onVerificationRequired?: () => void,
+    /**
+     * Called with the reason sign-up failed. Same rationale as `loginRequest`:
+     * a toast fades before it can be read, so callers that can render the reason
+     * inline get it here and the toast is suppressed.
+     */
+    onError?: (message: string) => void
 ): Promise<void> {
+    /** Inline when the caller can render it, red toast otherwise. */
+    const reportFailure = (message: string) => {
+        if (onError) {
+            onError(message);
+            return;
+        }
+
+        toast(message, {
+            style: {
+                background: "#dc3545",
+                color: "#fff",
+                borderRadius: "10px",
+                boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
+            },
+        });
+    };
+
     setLoading(true)
     const url = `${API_BASE_URL}/v1/register`;
     const formData = new FormData();
@@ -83,25 +106,10 @@ export async function registerRequest(
 
         }
         else {
-            toast(message, {
-                style: {
-                    background: "#dc3545",
-                    color: "#fff",
-                    borderRadius: "10px",
-                    boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
-                },
-            });
+            reportFailure(message || 'تعذّر إنشاء الحساب.');
         }
     } catch (error) {
         setLoading(false);
-        const errorMessage = getApiErrorMessage(error);
-        toast(errorMessage, {
-            style: {
-                background: "#dc3545",
-                color: "#fff",
-                borderRadius: "10px",
-                boxShadow: "5px 5px 10px rgba(0, 0, 0, 0.1)",
-            },
-        });
+        reportFailure(getApiErrorMessage(error) || 'تعذّر إنشاء الحساب.');
     }
 }

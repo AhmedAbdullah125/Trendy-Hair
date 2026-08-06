@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, User, Phone, Mail, Edit2, Save, CheckCircle2 } from 'lucide-react';
 import { useUpdateProfile } from '../requests/updateProfile';
-import { PhoneInput } from 'react-international-phone';
-import 'react-international-phone/style.css';
+import PhoneField from '../PhoneField';
 import { toE164 } from '../../lib/phone';
+import { onImageError, resolveImageUrl } from '../../lib/imageUrl';
 
 interface EditAccountFormProps {
     currentUser: {
@@ -71,12 +71,17 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
         e.preventDefault();
         const newErrors: { [key: string]: string } = {};
 
+        // Mirrors `UpdateRequest` (backend `884da51`): letters and spaces only,
+        // 2–100. Apostrophes and hyphens used to pass here and then fail
+        // server-side, so the rule is kept character-for-character identical.
         const trimmedName = name.trim();
         if (!trimmedName) {
             newErrors.name = 'يرجى إدخال الاسم';
         } else if (trimmedName.length < 2) {
             newErrors.name = 'الاسم يجب أن يكون حرفين على الأقل';
-        } else if (!/^[\p{L}\s'-]+$/u.test(trimmedName)) {
+        } else if (trimmedName.length > 100) {
+            newErrors.name = 'الاسم يجب أن لا يتجاوز 100 حرف';
+        } else if (!/^[\p{L}\s]+$/u.test(trimmedName)) {
             newErrors.name = 'الاسم يجب أن يحتوي على حروف فقط (بدون أرقام أو رموز)';
         }
         if (!phone.trim()) newErrors.phone = 'يرجى إدخال رقم الهاتف';
@@ -130,8 +135,20 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
                     <div className="relative">
                         {photoPreview || (currentUser.photo && !currentUser.photo.includes('unknown.svg')) ? (
                             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-app-gold/20">
+                                {/*
+                                  * `photoPreview` is a local data: URL and must not be
+                                  * resolved. The stored value, though, is not always the
+                                  * absolute URL this used to assume: saving the profile
+                                  * without re-picking a file writes the accessor's own
+                                  * output back to the column, which can leave a
+                                  * root-relative "/users/x.jpg". Rendered raw that
+                                  * resolves against the app's origin, not the API's, and
+                                  * 404s — which is what "the photo does not work" looked
+                                  * like after a second save.
+                                  */}
                                 <img
-                                    src={photoPreview || currentUser.photo}
+                                    src={photoPreview || resolveImageUrl(currentUser.photo)}
+                                    onError={onImageError}
                                     alt="Profile"
                                     className="w-full h-full object-cover"
                                 />
@@ -177,19 +194,16 @@ const EditAccountForm: React.FC<EditAccountFormProps> = ({ currentUser, navigate
                 {/* Phone */}
                 <div>
                     <label className="block text-sm font-bold text-app-text mb-2 text-start">رقم الهاتف</label>
-                    <div className="relative phone-input-wrapper" dir="ltr">
-                        <PhoneInput
-                            defaultCountry="kw"
-                            value={phone}
-                            onChange={(v, meta) => { setPhone(v); setDialCode(meta.country.dialCode); }}
-                            inputClassName={`!w-full !p-4 !bg-white !border !rounded-2xl !outline-none !focus:border-app-gold !text-left !pl-[60px] !text-app-text !font-medium !h-auto ${errors.phone ? '!border-red-500' : '!border-app-card'}`}
-                            countrySelectorStyleProps={{
-                                buttonClassName: "!border-none !bg-transparent !absolute !left-0 !top-1/2 !-translate-y-1/2 !z-10 !h-full !flex !items-center !justify-center !px-3",
-                                flagClassName: "!m-0 w-12 shrink-0 me-2 ms-2",
-                            }}
-                            className="w-full"
-                        />
-                    </div>
+                    {/*
+                      * Shares AuthScreen's field so the searchable country picker
+                      * exists on both screens rather than only at sign-up.
+                      */}
+                    <PhoneField
+                        value={phone}
+                        onChange={(v, code) => { setPhone(v); setDialCode(code); }}
+                        hasError={!!errors.phone}
+                        surface="white"
+                    />
                     {errors.phone && <p className="text-red-500 text-xs mt-1 font-bold text-start">{errors.phone}</p>}
                 </div>
 
