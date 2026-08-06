@@ -517,6 +517,49 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
     </div>
   );
 
+  /**
+   * The same stage rewards, slimmed down to sit above a live question.
+   *
+   * The full cards are only on the idle screen, so once play started there was
+   * no way to see what each stage is worth — and no way back to look without
+   * abandoning a question whose timer keeps running. This puts the figures on
+   * the question screen instead, which is the version of "let me see the
+   * points again" that does not cost the player the round.
+   *
+   * Purely informational: it reads `run`, and nothing here is interactive.
+   */
+  const renderStageStrip = (activeIndex: number) => (
+    <div className="flex items-stretch gap-1.5 w-full mb-2" aria-label="نقاط المراحل">
+      {gameStages.map((stage: any, idx: number) => {
+        const isCleared = run.clearedStageIndexes.includes(idx);
+        const isCurrent = idx === activeIndex;
+
+        return (
+          <div
+            key={stage.id ?? idx}
+            aria-current={isCurrent || undefined}
+            className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-xl border transition-all ${
+              isCurrent
+                ? 'bg-app-gold/10 border-app-gold'
+                : isCleared
+                  ? 'bg-white border-app-gold/40'
+                  : 'bg-[#EBE5DA]/40 border-transparent'
+            }`}
+          >
+            <span
+              className={`text-[11px] font-bold leading-tight ${
+                isCurrent ? 'text-app-goldDark' : isCleared ? 'text-app-text' : 'text-gray-400'
+              }`}
+            >
+              {stage.rewardName}
+            </span>
+            <span className="text-[8px] text-gray-400 leading-tight truncate max-w-full">{stage.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   /** The pot, shown wherever a run is live. */
   const renderPot = () => (
     <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-app-gold/30 mb-6 text-center animate-fadeIn">
@@ -781,6 +824,9 @@ const PlayTab: React.FC<PlayTabProps> = ({ onCreditWallet }) => {
       </div>
 
       <div className="flex-1 mt-0 flex flex-col min-h-0">
+        {/* Stage rewards, so the timer and the points are read in one glance. */}
+        {renderStageStrip(run.stageIndex)}
+
         <div className="flex justify-center mb-2">
           <div className={`flex items-center gap-2 px-6 py-2 rounded-2xl border-2 transition-colors duration-300 ${timeRemaining === 0 ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-app-gold/20 text-app-goldDark'}`}>
             <Timer size={20} className={timeRemaining > 0 && timeRemaining <= 10 ? 'animate-pulse' : ''} />

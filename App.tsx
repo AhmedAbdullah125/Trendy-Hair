@@ -18,6 +18,8 @@ import { Check } from 'lucide-react';
 import { STORAGE_KEYS } from './constants';
 import Cookies from 'js-cookie';
 import CartFlow from './components/cart/CartFlow';
+import PaymentResultScreen from './components/cart/PaymentResultScreen';
+import { clearPaymentParams, parsePaymentReturn, type PaymentReturn } from './lib/paymentReturn';
 
 // ✅ API hooks
 import { useGetCart } from './components/requests/useGetCart';
@@ -75,7 +77,7 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [favourites, setFavourites] = useState<number[]>([]);
   const [pendingOrderDetailsId, setPendingOrderDetailsId] = useState<string | null>(null);
-  const [paymentSuccessData, setPaymentSuccessData] = useState<{ orderId: string } | null>(null);
+  const [paymentResult, setPaymentResult] = useState<PaymentReturn | null>(null);
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -120,15 +122,12 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     localStorage.removeItem(STORAGE_KEYS.WALLET_GAME);
     localStorage.removeItem(STORAGE_KEYS.WALLET_LOYALTY);
 
-    // Check for payment success parameters in URL
-    const searchParams = new URLSearchParams(window.location.search);
-    const orderId = searchParams.get('orderId');
-    const status = searchParams.get('status');
-    const paymentStatus = searchParams.get('paymentStatus');
-
-    if (orderId && status === 'success' && paymentStatus === 'paid') {
-      setPaymentSuccessData({ orderId });
-    }
+    // Outcome of a payment the gateway just sent us back from.
+    //
+    // Only the paid case used to be read, so a failed or unconfirmed payment
+    // landed on the home screen saying nothing at all — the customer had no way
+    // to tell whether they had been charged.
+    setPaymentResult(parsePaymentReturn(window.location.search));
   }, []);
 
   // Handle toast auto-hide
@@ -244,23 +243,47 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     navigate(`/account/order/${orderId}`);
   };
 
-  if (paymentSuccessData) {
+  if (paymentResult) {
+    // Drop the payment parameters so a refresh — or the Back button — cannot
+    // replay this screen against a payment that has since been resolved.
+    const dismissPaymentResult = () => {
+      setPaymentResult(null);
+      const search = clearPaymentParams(window.location.search);
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + search + window.location.hash
+      );
+    };
+
     return (
       <div className="w-full bg-[#F7F4EE] min-h-screen relative shadow-2xl flex flex-col overflow-hidden">
-        <SuccessStep
-          lastOrderId={paymentSuccessData.orderId}
-          onClose={() => {
-            setPaymentSuccessData(null);
-            // Optional: clean up the URL to remove the query params
-            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-            navigate('/');
-          }}
-          onViewOrderDetails={(id) => {
-            setPaymentSuccessData(null);
-            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-            handleViewOrderDetails(id);
-          }}
-        />
+        {paymentResult.outcome === 'paid' ? (
+          <SuccessStep
+            lastOrderId={paymentResult.orderId}
+            onClose={() => {
+              dismissPaymentResult();
+              navigate('/');
+            }}
+            onViewOrderDetails={(id) => {
+              dismissPaymentResult();
+              handleViewOrderDetails(id);
+            }}
+          />
+        ) : (
+          <PaymentResultScreen
+            orderId={paymentResult.orderId}
+            outcome={paymentResult.outcome}
+            onClose={() => {
+              dismissPaymentResult();
+              navigate('/');
+            }}
+            onViewOrderDetails={(id) => {
+              dismissPaymentResult();
+              handleViewOrderDetails(id);
+            }}
+          />
+        )}
       </div>
     );
   }
