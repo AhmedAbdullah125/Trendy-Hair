@@ -14,7 +14,6 @@ import BrandPage from './components/BrandPage';
 import AuthScreen from './components/AuthScreen';
 import SuccessStep from './components/cart/SuccessStep';
 import { TabId, Product } from './types';
-import { Check } from 'lucide-react';
 import { STORAGE_KEYS } from './constants';
 import Cookies from 'js-cookie';
 import CartFlow from './components/cart/CartFlow';
@@ -79,9 +78,6 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [pendingOrderDetailsId, setPendingOrderDetailsId] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<PaymentReturn | null>(null);
 
-  // Toast state
-  const [showToast, setShowToast] = useState(false);
-
   // ✅ language (adjust if you have global lang)
   const lang = "ar";
 
@@ -129,14 +125,6 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     // to tell whether they had been charged.
     setPaymentResult(parsePaymentReturn(window.location.search));
   }, []);
-
-  // Handle toast auto-hide
-  useEffect(() => {
-    if (showToast) {
-      const timer = setTimeout(() => setShowToast(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showToast]);
 
   // ✅ cartCount from API
   const cartCount = useMemo(() => {
@@ -190,16 +178,10 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   // --- CART HANDLERS (API) ---
   const handleAddToCart = (product: Product, quantity: number) => {
     // ✅ POST /cart/add-items
-    addToCartMut.mutate(
-      { product_id: product.id, quantity, lang },
-      {
-        onSuccess: () => {
-          // ✅ Trigger notification
-          setShowToast(false);
-          setTimeout(() => setShowToast(true), 10);
-        }
-      }
-    );
+    // `useAddToCart` displays the exact message returned by the backend.
+    // A second custom success banner here used to show two confirmations for
+    // one tap, and its hard-coded Arabic could disagree with the API result.
+    addToCartMut.mutate({ product_id: product.id, quantity, lang });
   };
 
   // ⚠️ These need endpoints. Keep UI working; do nothing for now.
@@ -401,33 +383,8 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
           </Routes>
         </main>
 
-        {(
-          <>
-            {showToast && (
-              <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-[380px] bg-app-gold text-white py-3 px-5 rounded-2xl shadow-xl flex items-center justify-between z-[100] animate-slideUp transition-all font-alexandria">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                    <Check size={16} strokeWidth={3} />
-                  </div>
-                  <span className="font-bold text-sm">تم الإضافة للسلة</span>
-                </div>
-              </div>
-            )}
-
-            <TabBar currentTab={currentTab} onTabChange={(tab) => navigate(`/${tab === 'home' ? '' : tab}`)} />
-          </>
-        )}
+        <TabBar currentTab={currentTab} onTabChange={(tab) => navigate(`/${tab === 'home' ? '' : tab}`)} />
       </div>
-
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translate(-50%, 100%); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
-        }
-        .animate-slideUp {
-          animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}</style>
     </div>
   );
 };
