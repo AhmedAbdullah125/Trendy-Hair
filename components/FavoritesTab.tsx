@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, ArrowRight, ShoppingBag, Plus, Minus, ChevronLeft, ChevronRight, } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import Cookies from "js-cookie";
 import { Product } from "../types";
 import ProductCard from "./ProductCard";
@@ -55,106 +55,12 @@ const FavoritesTab: React.FC<FavoritesTabProps> = ({
     onToggleFavourite(id);
   };
 
-  // Local details overlay
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-
   const handleProductClick = (product: Product) => {
-    setQuantity(1);
-    setSelectedProduct(product);
+    // Use the canonical product page instead of the reduced favourites-only
+    // overlay. It contains the real stock state, cart-aware quantity controls,
+    // and the "اشتري الآن" action; Back naturally returns to favourites.
+    navigate(`/product/${product.id}`);
   };
-
-  const updateQuantity = (val: number) => {
-    setQuantity((prev) => Math.max(1, prev + val));
-  };
-
-  /* ===================== Product Details Overlay ===================== */
-  if (selectedProduct) {
-    return (
-      <div className="flex flex-col h-full px-6 pt-6 pb-28 overflow-y-auto no-scrollbar font-alexandria animate-fadeIn">
-        <header className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => setSelectedProduct(null)}
-            className="p-2 bg-white rounded-full shadow-sm text-app-text hover:bg-app-card transition-colors flex items-center gap-2"
-          >
-            <ArrowRight size={20} />
-            <span className="text-sm font-medium">العودة</span>
-          </button>
-          <h1 className="text-xl font-bold text-app-text">تفاصيل المنتج</h1>
-        </header>
-
-        <div className="flex-1 pb-10">
-          <div className="mb-6">
-            <div className="w-full aspect-square rounded-[2.5rem] overflow-hidden shadow-md bg-white border border-app-card/30">
-              <img
-                src={selectedProduct.image}
-                alt={selectedProduct.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-app-text font-alexandria leading-tight">
-              {selectedProduct.name}
-            </h2>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-xl font-bold text-app-gold">
-                {selectedProduct.price}
-              </span>
-              {selectedProduct.oldPrice && (
-                <span className="text-sm text-app-textSec line-through opacity-60">
-                  {selectedProduct.oldPrice}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-sm font-bold text-app-text mb-2">الوصف</h3>
-            <p className="text-sm text-app-textSec leading-relaxed">
-              {selectedProduct.description ||
-                "لا يوجد وصف متوفر لهذا المنتج حالياً."}
-            </p>
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-sm font-bold text-app-text mb-3">الكمية</h3>
-            <div className="flex items-center gap-6 bg-white w-fit px-4 py-2 rounded-2xl shadow-sm border border-app-card/30">
-              <button
-                onClick={() => updateQuantity(1)}
-                className="p-1.5 bg-app-bg rounded-lg text-app-gold hover:bg-app-card transition-colors"
-              >
-                <Plus size={18} />
-              </button>
-              <span className="text-lg font-bold text-app-text w-8 text-center tabular-nums">
-                {quantity}
-              </span>
-              <button
-                onClick={() => updateQuantity(-1)}
-                className="p-1.5 bg-app-bg rounded-lg text-app-gold hover:bg-app-card transition-colors"
-              >
-                <Minus size={18} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mb-10">
-            <button
-              onClick={() => {
-                onAddToCart(selectedProduct, quantity);
-                setSelectedProduct(null);
-              }}
-              className="w-full bg-app-gold active:bg-app-goldDark text-white font-bold py-4 rounded-2xl shadow-lg shadow-app-gold/30 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
-            >
-              <ShoppingBag size={20} />
-              <span>إضافة إلى السلة</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   /* ===================== Main Favorites Grid ===================== */
   return (
