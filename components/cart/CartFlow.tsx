@@ -317,9 +317,10 @@ const CartFlow: React.FC<CartFlowProps> = ({
             onDeleteItem={handleDeleteItem}
             onClearAll={handleClearAll}
             onViewProduct={(productId) => {
-                // The cart is an overlay above the router, so it has to close or
-                // it would simply cover the product page it just opened.
-                onClose();
+                // The cart is the `/cart` route, so navigating away closes it
+                // automatically. Calling `onClose()` first performed a second
+                // history move and could win the race, sending the customer to
+                // home instead of the product they tapped.
                 navigate(`/product/${productId}`);
             }}
         />
