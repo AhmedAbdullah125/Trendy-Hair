@@ -57,7 +57,7 @@ const AllProductsPage: React.FC<AllProductsPageProps> = ({
   };
   return (
     <div className="flex pt-20 flex-col h-full bg-app-bg relative font-alexandria overflow-hidden">
-      <header className="fixed w-full top-0 z-30 flex flex-col gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
+      <header className="fixed w-full top-0 z-50 isolate flex flex-col gap-4 px-6 pt-6 pb-4 bg-app-bg shadow-sm border-b border-app-card/30 flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
