@@ -71,8 +71,11 @@ const SuccessStep: React.FC<Props> = ({
                 </button>
                 <button
                     onClick={() => {
-                        navigate("/account/history");
-                        onClose();
+                        // The cart is derived from the current route. Navigating
+                        // directly closes it; calling `onClose()` afterwards used
+                        // to run a second history navigation and land back on the
+                        // cart (or the page behind it) instead of order history.
+                        navigate("/account/history", { replace: true });
                     }}
                     className="w-full text-app-gold font-bold py-4 rounded-2xl active:bg-app-bg transition-colors"
                 >
