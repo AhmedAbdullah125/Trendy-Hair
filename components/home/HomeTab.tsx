@@ -162,10 +162,19 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     // Back dismisses the drawer rather than leaving the page it is covering.
     useCloseOnBack(isMenuOpen, closeMenu);
 
-    const handleCategoryClick = useCallback((name: string, id: string) => {
-        navigate(`/category/${encodeURIComponent(name)}?id=${id}`);
-        setIsMenuOpen(false);
+    const navigateFromMenu = useCallback((to: string) => {
+        // Opening the drawer adds a same-URL history entry so Back can dismiss
+        // it. Consume that entry first, then navigate. Navigating immediately
+        // and merely setting isMenuOpen=false made the overlay cleanup call
+        // history.back(), which silently undid the requested navigation.
+        const handleDrawerDismissed = () => navigate(to);
+        window.addEventListener("popstate", handleDrawerDismissed, { once: true });
+        window.history.back();
     }, [navigate]);
+
+    const handleCategoryClick = useCallback((name: string, id: string) => {
+        navigateFromMenu(`/category/${encodeURIComponent(name)}?id=${id}`);
+    }, [navigateFromMenu]);
 
     // Adapter for CategoriesRow which passes (id, name) instead of (name, id)
     const handleCategoryRowClick = useCallback((id: number, name: string) => {
@@ -195,9 +204,8 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
     const totalCategoryPages = categoryProductsData?.pagination?.total_pages || 1;
 
     const handleAccountClick = useCallback(() => {
-        navigate("/account");
-        closeMenu();
-    }, [navigate, closeMenu]);
+        navigateFromMenu("/account");
+    }, [navigateFromMenu]);
 
     const handleTitleClick = useCallback(() => navigate("/"), [navigate]);
     const handleClickBrand = useCallback((id: number) => navigate(`/brand/${id}`), [navigate]);
