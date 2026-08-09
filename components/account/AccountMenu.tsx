@@ -37,8 +37,8 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
             </div>
 
             {/* Profile Header */}
-            <div className="bg-white rounded-[2.5rem] p-5 flex items-center justify-between shadow-sm mb-4 border border-app-card/30">
-                <div className="flex items-center gap-4">
+            <div className="bg-white rounded-[2.5rem] p-5 flex items-center justify-between gap-3 shadow-sm mb-4 border border-app-card/30 overflow-hidden">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
                     {currentUser.photo && !currentUser.photo.includes('unknown.svg') ? (
                         <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-app-gold/10 flex-shrink-0 shadow-inner">
                             {/* Same resolution the rest of the app uses — see EditAccountForm. */}
@@ -54,9 +54,9 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                             <User size={32} className="text-app-gold/50" />
                         </div>
                     )}
-                    <div className="flex flex-col text-right">
-                        <span className="font-bold text-lg text-app-text">{currentUser.name}</span>
-                        <span className="text-sm text-app-textSec font-medium" dir="ltr">{currentUser.phone}</span>
+                    <div className="flex flex-col text-right min-w-0 flex-1">
+                        <span className="font-bold text-lg text-app-text break-words [overflow-wrap:anywhere] max-w-full">{currentUser.name}</span>
+                        <span className="text-sm text-app-textSec font-medium break-words [overflow-wrap:anywhere] max-w-full" dir="ltr">{currentUser.phone}</span>
                         <button onClick={() => navigate('/account/edit')} className="flex items-center gap-1 text-[10px] font-bold text-app-gold mt-1 hover:text-app-goldDark transition-colors w-fit">
                             <Edit2 size={12} />
                             <span>تعديل الحساب</span>
@@ -64,7 +64,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({
                     </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-1 shrink-0">
                     <button onClick={onLogout} className="flex items-center gap-2 text-red-500 font-bold text-sm hover:bg-red-50 px-4 py-2 rounded-2xl transition-all active:scale-95">
                         <span className="mt-0.5">تسجيل الخروج</span>
                         <XCircle size={22} className="text-red-500" />
