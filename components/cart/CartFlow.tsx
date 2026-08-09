@@ -6,7 +6,7 @@ import { useGetCities } from "../requests/useGetCities";
 import CartStep from "./CartStep";
 import DetailsStep from "./DetailsStep";
 import SuccessStep from "./SuccessStep";
-import type { AddressForm, CheckoutStep } from "./types";
+import { MIN_ADDRESS_DETAILS_LENGTH, type AddressForm, type CheckoutStep } from "./types";
 import { createOrder } from "../requests/useCreateOrder";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -203,6 +203,11 @@ const CartFlow: React.FC<CartFlowProps> = ({
         // checkout round trip into immediate feedback on the field the
         // customer is still looking at. `\p{L}` covers Arabic and Latin alike.
         const addressText = addressForm.details.trim();
+        if (addressText.length < MIN_ADDRESS_DETAILS_LENGTH) {
+            toast.error(`العنوان التفصيلي يجب أن يكون ${MIN_ADDRESS_DETAILS_LENGTH} أحرف على الأقل.`);
+            return;
+        }
+
         if (!/\p{L}/u.test(addressText)) {
             toast.error("العنوان التفصيلي يجب أن يحتوي على عنوان مكتوب، وليس أرقاماً أو مسافات فقط.");
             return;

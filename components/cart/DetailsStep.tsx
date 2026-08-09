@@ -5,7 +5,11 @@ import { useGetGovernorates } from "../requests/useGetGovernorates";
 import { useGetCities } from "../requests/useGetCities";
 
 import { dinarsToPoints, formatDinars, formatPoints, readWallet } from "../../lib/points";
-import type { AddressForm } from "./types";
+import {
+    MAX_ADDRESS_DETAILS_LENGTH,
+    MIN_ADDRESS_DETAILS_LENGTH,
+    type AddressForm,
+} from "./types";
 
 type Props = {
     addressForm: AddressForm;
@@ -146,12 +150,23 @@ const DetailsStep: React.FC<Props> = ({
                             />
                         </div>
 
-                        <textarea
-                            placeholder="العنوان التفصيلي"
-                            className="w-full p-4 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm h-24 resize-none"
-                            value={addressForm.details}
-                            onChange={(e) => onChangeAddress({ details: e.target.value })}
-                        />
+                        <div>
+                            <textarea
+                                placeholder="العنوان التفصيلي"
+                                className="w-full p-4 rounded-2xl border border-app-card/50 bg-white outline-none focus:border-app-gold text-sm h-24 resize-none"
+                                value={addressForm.details}
+                                minLength={MIN_ADDRESS_DETAILS_LENGTH}
+                                maxLength={MAX_ADDRESS_DETAILS_LENGTH}
+                                onChange={(e) => onChangeAddress({ details: e.target.value })}
+                                aria-describedby="address-details-hint"
+                            />
+                            <div id="address-details-hint" className="mt-1 flex items-center justify-between gap-2 px-1 text-[10px] text-app-textSec">
+                                <span>اكتبي الشارع ورقم المبنى، {MIN_ADDRESS_DETAILS_LENGTH} أحرف على الأقل.</span>
+                                <span className="shrink-0 tabular-nums" dir="ltr">
+                                    {addressForm.details.trim().length}/{MAX_ADDRESS_DETAILS_LENGTH}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
