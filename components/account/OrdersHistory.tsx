@@ -192,6 +192,15 @@ const OrdersHistory: React.FC<OrdersHistoryProps> = ({ onNavigateToHome, navigat
                                 </span>
                             </div>
 
+                            {order.cancellation_reason && (
+                                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
+                                    <p className="mb-1 text-[10px] font-bold text-red-500">سبب إلغاء الطلب</p>
+                                    <p className="text-xs font-medium leading-relaxed text-red-700 break-words [overflow-wrap:anywhere]">
+                                        {order.cancellation_reason}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="space-y-2 mb-6">
                                 <div className="flex justify-between text-xs text-app-textSec">
                                     <span>تاريخ الطلب:</span>

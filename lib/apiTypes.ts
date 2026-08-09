@@ -389,6 +389,8 @@ export interface ApiOrder {
   payment_status: string;
   status: string;
   notes: string | null;
+  /** Why the order was cancelled. Null for every non-cancelled order. */
+  cancellation_reason: string | null;
   total: string;
   items_count: number;
   created_at: string;

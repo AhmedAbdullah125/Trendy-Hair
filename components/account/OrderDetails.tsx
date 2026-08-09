@@ -140,6 +140,14 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ navigate }) => {
                                     {getStatusLabel(orderData.status)}
                                 </span>
                             </div>
+                            {orderData.cancellation_reason && (
+                                <div className="flex flex-col gap-1 text-xs">
+                                    <span className="font-bold text-red-500">سبب إلغاء الطلب:</span>
+                                    <span className="rounded-xl border border-red-200 bg-red-50 p-3 font-medium leading-relaxed text-red-700 break-words [overflow-wrap:anywhere]">
+                                        {orderData.cancellation_reason}
+                                    </span>
+                                </div>
+                            )}
                             {orderData.notes && (
                                 <div className="flex flex-col gap-1 text-xs">
                                     <span className="text-app-textSec">ملاحظات:</span>
