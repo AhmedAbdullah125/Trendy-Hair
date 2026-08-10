@@ -124,10 +124,33 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   // ── Add to cart (first time) ──────────────────────────────────────────────
+  /**
+   * Adding opens the product, so the tap ends somewhere the customer can act:
+   * read the description, pick a different quantity, or go straight to the
+   * cart. It used to leave them on the grid with only a toast, which said the
+   * product was in the cart but nothing about the product itself.
+   *
+   * Navigation goes through `onClick` — the same "open this product" the card
+   * body already uses — rather than a `navigate` of its own, so every screen
+   * keeps whatever it does around that (HomeTab, for one, resets the quantity
+   * it is about to show).
+   *
+   * Only on a confirmed add: the API answers 200 with `status: false` for
+   * refusals such as out of stock, and `useAddToCart` treats that as the
+   * failure it is. Navigating on the mere absence of a thrown error would
+   * carry the customer off as if it had worked.
+   */
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (addMut.isPending) return;
-    addMut.mutate({ product_id: product.id, quantity: 1, lang });
+    addMut.mutate(
+      { product_id: product.id, quantity: 1, lang },
+      {
+        onSuccess: (data: any) => {
+          if (data?.status) onClick(product);
+        },
+      }
+    );
   };
 
   // ── Counter: minus ────────────────────────────────────────────────────────

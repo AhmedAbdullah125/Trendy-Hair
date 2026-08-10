@@ -189,11 +189,14 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
 
     const updateQuantity = useCallback((delta: number) => setQuantity((p) => Math.max(1, p + delta)), []);
 
+    // Adding stays on the product, matching the card grid, where adding now
+    // *opens* it. This used to `navigate(-1)`, so the two pulled against each
+    // other: one tap took you to the product, the next threw it away again.
+    // The toast already confirms the add, and the cart button is right there.
     const handleAddAction = useCallback(() => {
         if (!selectedProduct) return;
         onAddToCart(selectedProduct, quantity);
-        navigate(-1);
-    }, [selectedProduct, quantity, onAddToCart, navigate]);
+    }, [selectedProduct, quantity, onAddToCart]);
 
     const handleBuyNow = useCallback(() => {
         if (!selectedProduct) return;
@@ -246,6 +249,28 @@ const HomeTab: React.FC<HomeTabProps> = ({ cartCount, onAddToCart, onOpenCart, f
                         onBuyNow={handleBuyNow}
                         onOpenCart={onOpenCart}
                     />
+                ) : productId ? (
+                    /*
+                     * A product route that resolved to nothing.
+                     *
+                     * This case used to fall through to `HomeContent` below, so
+                     * a product that failed to load rendered the *home screen*
+                     * while the address bar still read `/product/123`. Nothing
+                     * said the request had failed, and the customer appeared to
+                     * have been thrown back to the start for no reason.
+                     */
+                    <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-4">
+                        <p className="text-app-text font-bold">تعذّر عرض هذا المنتج</p>
+                        <p className="text-app-textSec text-sm">
+                            قد يكون المنتج غير متاح حالياً. حاولي مرة أخرى أو تصفحي باقي المنتجات.
+                        </p>
+                        <button
+                            onClick={handleBackToHome}
+                            className="bg-app-gold text-white font-bold py-3 px-8 rounded-2xl active:scale-95 transition-transform"
+                        >
+                            العودة للرئيسية
+                        </button>
+                    </div>
                 ) : !activeCategory ? (
                     <HomeContent
                         banners={banners}
