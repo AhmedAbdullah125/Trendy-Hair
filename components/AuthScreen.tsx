@@ -5,6 +5,7 @@ import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { loginRequest } from './requests/loginRequest';
 import { registerRequest } from './requests/register';
 import VerifyPhoneStep from './auth/VerifyPhoneStep';
+import ForgotPasswordFlow from './auth/ForgotPasswordFlow';
 import PhoneField from './PhoneField';
 import { hasEnoughDigits, MIN_NATIONAL_DIGITS, toE164 } from '../lib/phone';
 
@@ -12,7 +13,7 @@ interface AuthScreenProps {
   onLoginSuccess: () => void;
 }
 
-type AuthView = 'register' | 'login' | 'verify';
+type AuthView = 'register' | 'login' | 'verify' | 'forgot';
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -178,6 +179,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               onVerified={handleVerified}
               onBack={() => setView('login')}
             />
+          ) : view === 'forgot' ? (
+            <ForgotPasswordFlow
+              initialPhone={phone}
+              initialDialCode={dialCode}
+              lang="ar"
+              onDone={() => {
+                setView('login');
+                setPassword('');
+                setError('');
+              }}
+              onBack={() => {
+                setView('login');
+                setError('');
+              }}
+            />
           ) : (
             <>
               <h2 className="text-xl font-bold text-app-text mb-6 text-center">
@@ -229,6 +245,23 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+
+            {/* Login Only: Forgot Password */}
+            {view === 'login' && (
+              <div className="text-left">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView('forgot');
+                    setError('');
+                  }}
+                  className="text-xs text-app-textSec hover:text-app-gold font-medium transition-colors"
+                  disabled={isLoading}
+                >
+                  نسيت كلمة المرور؟
+                </button>
+              </div>
+            )}
 
             {/* Registration Only: Confirm Password */}
             {view === 'register' && (
